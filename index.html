@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>【非公式】シクフォニ文字あそび</title>
+<title>【非公式】シクフォニ人文字遊び</title>
 <style>
   :root {
     /* サイト全体は黒基調。キャンバスだけ白（紙）にする。 */
@@ -13,8 +13,8 @@
     --line: #2e323d;
     --fg: #eef0f6;
     --muted: #9aa1b4;
-    --accent: #6ee7d5;
-    --accent-2: #f7c96b;
+    --accent: #b8860b;
+    --accent-2: #d9a441;
     --tile-fg: #16181d;   /* 白いキャンバスに置く文字の色 */
   }
   * { box-sizing: border-box; }
@@ -67,7 +67,7 @@
   }
   button:hover:not(:disabled) { border-color: var(--accent); }
   button:disabled { opacity: .4; cursor: default; }
-  button.primary { background: var(--accent); color: #10221f; border-color: var(--accent); font-weight: 700; }
+  button.primary { background: var(--accent); color: #1a1205; border-color: var(--accent); font-weight: 700; }
   button.small { padding: 5px 9px; font-size: 12px; }
 
   /* --- 手札トレイ --- */
@@ -104,7 +104,13 @@
   }
   .tile.small-mark { font-size: 28px; }
   .tile canvas { width: 56px; height: 56px; display: block; pointer-events: none; }
-  .tile.selected { outline: 1px dashed #0e9c88; outline-offset: 0; }
+  .tile.selected { outline: 1px dashed #8a6a10; outline-offset: 0; }
+  /* 選択中だけ出る、つまんで大きさを変えるハンドル。倍率の影響を打ち消して見た目を一定に保つ */
+  .tile .handle {
+    position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px;
+    border-radius: 50%; background: #8a6a10; border: 2px solid #fff;
+    cursor: nwse-resize; touch-action: none; box-sizing: border-box;
+  }
   .tile.dragging { cursor: grabbing; }
 
   #tile-controls { margin-top: 10px; display: none; }
@@ -134,34 +140,40 @@
 <div class="wrap">
 
   <header>
-    <h1><span class="unofficial">【非公式】</span>シクフォニ<span class="mark">文字あそび</span></h1>
-    <span class="sub">シ / ク / フ / オ / ニ / !? だけで遊ぶ</span>
+    <h1><span class="unofficial">【非公式】</span>シクフォニ<span class="mark">人文字遊び</span></h1>
+    <span class="sub" id="header-sub">シ / ク / フ / オ / ニ / !? だけで遊ぶ</span>
   </header>
 
   <details class="howto">
     <summary>遊びかた</summary>
     <ol>
-      <li>枚数を決めて <b>引く</b>。6種類の文字がランダムに出ます（同じ文字が何枚出てもOK）。</li>
+      <li><b>文字セット</b>を選び、枚数を決めて <b>引く</b>。選んだセットの文字がランダムに出ます（同じ文字が何枚出てもOK）。セットを変えると手札は引き直しになります。</li>
       <li>手札の文字をタップするとキャンバスに置かれます。</li>
-      <li><b>人文字にする</b>をONにすると、1画につき1人が体を伸ばして文字を作ります（1文字あたり1〜3人）。拡大すると腕や脚まで見えます。</li>
-      <li>キャンバスの文字はドラッグで移動。選ぶと<b>回転・拡大縮小・反転・濃さ・重ね順</b>を変えられます。文字に枠はないので、<b>そのまま重ねれば線どうしが組み合わさります</b>。</li>
+      <li><b>人文字にする</b>は最初からONです。1画につき1人が体を伸ばして文字を作ります（1文字あたり1〜4人）。拡大すると腕や脚まで見えます。OFFにすると普通の文字になります。</li>
+      <li>キャンバスの文字はドラッグで移動。選ぶと<b>回転・拡大縮小・反転・濃さ・重ね順・見立て</b>を変えたり、<b>手札に戻す</b>ことができます。文字に枠はないので、<b>そのまま重ねれば線どうしが組み合わさります</b>。</li>
+      <li>選んだ文字の<b>右下の丸をつまんでドラッグ</b>すると、その場で大きさを変えられます。</li>
       <li>「オ→ォ」「ニ→二」の<b>見立て</b>で、小書き文字や漢数字としても使えます。</li>
-      <li>下の<b>作れる言葉例</b>は、今の手札の文字だけをランダムに組んだ並び。意味のあることばとは限りません。押すとキャンバスに並びます。</li>
-      <li>キーボード: <b>R</b>=90°回転 / <b>矢印</b>=微調整 / <b>Delete</b>=手札に戻す</li>
+      <li>下の<b>作れる言葉例</b>は、今の手札の文字だけをランダムに組んだ並び。意味のあることばとは限りません。押すとキャンバスに並び、<b>別の組み合わせを出す</b>で引き直せます。</li>
+      <li>キーボード: <b>R</b>=90°回転 / <b>矢印</b>=微調整（<b>Shift</b>で大きく動く）/ <b>Delete</b>=手札に戻す</li>
     </ol>
   </details>
 
   <!-- ① ガチャ -->
   <section>
     <div class="sec-head"><h2>① もじガチャ</h2></div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="label">文字セット</span>
+      <label class="field"><input type="radio" name="charset" value="sixfonia" checked> シクフォニ</label>
+      <label class="field"><input type="radio" name="charset" value="kana"> カタカナ50音（オプション）</label>
+    </div>
     <div class="row">
       <label class="field">
         枚数
         <input type="range" id="draw-count" min="6" max="24" step="1" value="6">
         <span class="count-badge" id="draw-count-label">6</span>
       </label>
-      <label class="field">
-        <input type="checkbox" id="ensure-all"> 6種すべて最低1枚
+      <label class="field" id="ensure-all-field">
+        <input type="checkbox" id="ensure-all"> <span id="ensure-all-label">6種すべて最低1枚</span>
       </label>
       <button class="primary" id="btn-draw">引く</button>
       <button class="small" id="btn-undo" disabled>引く前に戻す</button>
@@ -246,14 +258,40 @@
 (function () {
   'use strict';
 
-  // 6パターン。'!?' は2文字だが1タイル＝1パターンとして扱う。
-  var CHARS = ['シ', 'ク', 'フ', 'オ', 'ニ', '!?'];
+  // 文字セット。'!?' は2文字だが1タイル＝1パターンとして扱う。
+  var SETS = {
+    sixfonia: {
+      label: 'シクフォニ',
+      chars: ['シ', 'ク', 'フ', 'オ', 'ニ', '!?']
+    },
+    kana: {
+      label: 'カタカナ50音（オプション）',
+      chars: [
+        'ア', 'イ', 'ウ', 'エ', 'オ',
+        'カ', 'キ', 'ク', 'ケ', 'コ',
+        'サ', 'シ', 'ス', 'セ', 'ソ',
+        'タ', 'チ', 'ツ', 'テ', 'ト',
+        'ナ', 'ニ', 'ヌ', 'ネ', 'ノ',
+        'ハ', 'ヒ', 'フ', 'ヘ', 'ホ',
+        'マ', 'ミ', 'ム', 'メ', 'モ',
+        'ヤ', 'ユ', 'ヨ',
+        'ラ', 'リ', 'ル', 'レ', 'ロ',
+        'ワ', 'ヲ', 'ン'
+      ]
+    }
+  };
+  // 保存データを読み戻すときの検証用（セットを跨いでも手札を捨てない）
+  var ALL_CHARS = Object.keys(SETS).reduce(function (a, k) {
+    return a.concat(SETS[k].chars.filter(function (c) { return a.indexOf(c) < 0; }));
+  }, []);
+
+  function chars() { return SETS[state.charset].chars; }
   // 見立て（表示だけ差し替え）。index 0 が既定。
   var VARIANTS = { 'オ': ['オ', 'ォ'], 'ニ': ['ニ', '二'] };
   var TILE = 56;
   var STORAGE_KEY = 'sixfonia-moji-asobi/v2';
 
-  var state = { tiles: [], nextId: 1, nextZ: 1, selectedId: null, drawCount: 6, ensureAll: false, randoms: [], hitomoji: false };
+  var state = { tiles: [], nextId: 1, nextZ: 1, selectedId: null, drawCount: 6, ensureAll: false, randoms: [], hitomoji: true, charset: 'sixfonia' };
   var undoSnapshot = null;
   var isDragging = false;
 
@@ -267,8 +305,8 @@
 
     var n = state.drawCount;
     var picked = [];
-    if (state.ensureAll) {
-      picked = CHARS.slice();                       // 6種を1枚ずつ確保
+    if (state.ensureAll && chars().length <= n) {
+      picked = chars().slice();                     // 全種を1枚ずつ確保
       while (picked.length < n) picked.push(randChar());
       shuffle(picked);
     } else {
@@ -283,7 +321,7 @@
     renderAll();
   }
 
-  function randChar() { return CHARS[Math.floor(Math.random() * CHARS.length)]; }
+  function randChar() { var c = chars(); return c[Math.floor(Math.random() * c.length)]; }
 
   function shuffle(a) {
     for (var i = a.length - 1; i > 0; i--) {
@@ -350,17 +388,124 @@
   // 1画＝1人。人が体を伸ばして文字の一画になる（1文字あたり最大3人）。
   // 座標は 100×100 の枠での画（ストローク）の折れ線。
   var STROKES = {
-    'シ': [ [[20, 26], [36, 34]],
-            [[20, 52], [36, 60]],
-            [[72, 18], [26, 74]] ],
-    'ク': [ [[26, 24], [70, 24], [38, 78]],
-            [[42, 30], [26, 56]] ],
-    'フ': [ [[26, 26], [70, 26], [34, 78]] ],
+    'ア': [ [[24, 26], [72, 26], [68, 46]],
+            [[58, 36], [26, 76]] ],
+    'イ': [ [[64, 20], [26, 54]],
+            [[48, 36], [48, 82]] ],
+    'ウ': [ [[50, 14], [50, 26]],
+            [[26, 32], [24, 58]],
+            [[28, 32], [74, 32], [70, 70], [48, 80]] ],
+    'エ': [ [[28, 26], [72, 26]],
+            [[50, 26], [50, 72]],
+            [[22, 74], [78, 74]] ],
     'オ': [ [[20, 36], [78, 36]],
             [[58, 18], [48, 82]],
             [[52, 48], [24, 78]] ],
+
+    'カ': [ [[22, 32], [70, 32], [52, 80]],
+            [[38, 18], [30, 66]] ],
+    'キ': [ [[26, 30], [70, 24]],
+            [[20, 50], [80, 44]],
+            [[54, 16], [46, 82]] ],
+    'ク': [ [[26, 24], [70, 24], [38, 78]],
+            [[42, 30], [26, 56]] ],
+    'ケ': [ [[40, 18], [24, 52]],
+            [[30, 34], [74, 34], [68, 60]],
+            [[54, 44], [48, 82]] ],
+    'コ': [ [[26, 28], [74, 28], [74, 70]],
+            [[26, 70], [74, 70]] ],
+
+    'サ': [ [[20, 42], [80, 42]],
+            [[34, 26], [30, 62]],
+            [[58, 22], [54, 80]] ],
+    'シ': [ [[20, 26], [36, 34]],
+            [[20, 52], [36, 60]],
+            [[72, 18], [26, 74]] ],
+    'ス': [ [[24, 26], [72, 26], [28, 78]],
+            [[46, 52], [74, 78]] ],
+    'セ': [ [[20, 40], [76, 34]],
+            [[38, 18], [32, 68], [74, 74]] ],
+    'ソ': [ [[30, 26], [38, 42]],
+            [[70, 22], [36, 76]] ],
+
+    'タ': [ [[26, 24], [68, 24], [36, 78]],
+            [[40, 30], [26, 54]],
+            [[46, 52], [60, 64]] ],
+    'チ': [ [[26, 26], [66, 20]],
+            [[20, 46], [78, 42]],
+            [[56, 42], [46, 82]] ],
+    'ツ': [ [[26, 24], [30, 42]],
+            [[48, 22], [52, 40]],
+            [[72, 22], [34, 74]] ],
+    'テ': [ [[28, 24], [72, 24]],
+            [[20, 44], [80, 44]],
+            [[54, 44], [46, 82]] ],
+    'ト': [ [[40, 16], [40, 82]],
+            [[40, 44], [70, 60]] ],
+
+    'ナ': [ [[20, 34], [78, 34]],
+            [[56, 18], [42, 80]] ],
     'ニ': [ [[30, 34], [66, 34]],
             [[20, 68], [80, 68]] ],
+    'ヌ': [ [[24, 26], [70, 26], [30, 78]],
+            [[42, 48], [72, 78]] ],
+    'ネ': [ [[48, 12], [54, 22]],
+            [[26, 30], [74, 30]],
+            [[62, 30], [24, 76]],
+            [[50, 48], [50, 80]] ],
+    'ノ': [ [[70, 20], [28, 78]] ],
+
+    'ハ': [ [[42, 24], [24, 76]],
+            [[54, 26], [76, 76]] ],
+    'ヒ': [ [[34, 18], [30, 72], [76, 66]],
+            [[30, 44], [66, 36]] ],
+    'フ': [ [[26, 26], [70, 26], [34, 78]] ],
+    'ヘ': [ [[26, 58], [52, 32], [78, 66]] ],
+    'ホ': [ [[20, 32], [80, 32]],
+            [[50, 18], [50, 80]],
+            [[44, 50], [26, 76]],
+            [[56, 50], [74, 76]] ],
+
+    'マ': [ [[24, 26], [70, 26], [46, 54]],
+            [[40, 48], [56, 82]] ],
+    'ミ': [ [[24, 24], [70, 34]],
+            [[24, 46], [70, 56]],
+            [[24, 68], [70, 78]] ],
+    'ム': [ [[56, 20], [26, 62]],
+            [[30, 58], [76, 74]] ],
+    'メ': [ [[72, 20], [28, 78]],
+            [[32, 30], [74, 76]] ],
+    'モ': [ [[24, 28], [70, 28]],
+            [[20, 50], [76, 50]],
+            [[52, 16], [46, 72], [76, 76]] ],
+
+    'ヤ': [ [[28, 30], [34, 50], [74, 36]],
+            [[54, 16], [46, 82]] ],
+    'ユ': [ [[40, 22], [40, 56], [76, 56]],
+            [[20, 78], [80, 78]] ],
+    'ヨ': [ [[26, 24], [72, 24], [72, 72]],
+            [[34, 48], [72, 48]],
+            [[30, 72], [72, 72]] ],
+
+    'ラ': [ [[32, 20], [70, 20]],
+            [[24, 40], [70, 40], [44, 80]] ],
+    'リ': [ [[32, 22], [30, 58]],
+            [[68, 20], [62, 74], [44, 82]] ],
+    'ル': [ [[34, 26], [28, 74]],
+            [[58, 20], [56, 64], [76, 78]] ],
+    'レ': [ [[34, 20], [36, 66], [74, 26]] ],
+    'ロ': [ [[28, 26], [28, 74]],
+            [[28, 26], [72, 26], [72, 74]],
+            [[28, 74], [72, 74]] ],
+
+    'ワ': [ [[26, 28], [24, 54]],
+            [[26, 28], [74, 28], [68, 70], [46, 80]] ],
+    'ヲ': [ [[26, 22], [74, 22]],
+            [[26, 44], [74, 44]],
+            [[70, 44], [42, 80]] ],
+    'ン': [ [[26, 28], [44, 36]],
+            [[26, 68], [70, 22]] ],
+
     '!?': [ [[34, 20], [34, 56]],
             [[56, 26], [70, 24], [70, 42], [62, 52]] ]
   };
@@ -497,6 +642,12 @@
       if (state.hitomoji) el.appendChild(hitomojiEl(displayChar(t)));
       else el.textContent = displayChar(t);
       el.style.zIndex = String(t.z);
+      if (state.selectedId === t.id) {
+        var h = document.createElement('div');
+        h.className = 'handle';
+        h.addEventListener('pointerdown', function (ev) { onHandlePointerDown(ev, t, el, h); });
+        el.appendChild(h);
+      }
       applyTransform(el, t);
       el.addEventListener('pointerdown', function (ev) { onTilePointerDown(ev, t, el); });
       canvas.appendChild(el);
@@ -507,6 +658,9 @@
     var sx = t.flipped ? -t.scale : t.scale;
     el.style.transform = 'translate(' + t.x + 'px,' + t.y + 'px) rotate(' + t.rot + 'deg) scale(' + sx + ',' + t.scale + ')';
     el.style.opacity = String(t.opacity == null ? 1 : t.opacity);
+    // ハンドルはタイルの拡大に引きずられないよう、逆数で打ち消して見た目の大きさを保つ
+    var h = el.querySelector('.handle');
+    if (h) h.style.transform = 'scale(' + (1 / t.scale) * (t.flipped ? -1 : 1) + ',' + (1 / t.scale) + ')';
   }
 
   function renderControls() {
@@ -545,6 +699,49 @@
   }
 
   // ---------- ドラッグ ----------
+  var SCALE_MIN = 0.5, SCALE_MAX = 3;
+
+  // 選択が変わったとき、リサイズハンドルを選択中のタイルだけに付け替える
+  function attachHandle(el, t) {
+    Array.prototype.slice.call(canvas.querySelectorAll('.handle')).forEach(function (x) { x.remove(); });
+    var h = document.createElement('div');
+    h.className = 'handle';
+    h.addEventListener('pointerdown', function (ev) { onHandlePointerDown(ev, t, el, h); });
+    el.appendChild(h);
+    applyTransform(el, t);
+  }
+
+  // 角をつまんで拡大縮小。中心からの距離の比で倍率を決める
+  function onHandlePointerDown(ev, t, el, h) {
+    ev.preventDefault();
+    ev.stopPropagation();          // タイル本体のドラッグ（移動）を起こさない
+    isDragging = true;
+
+    var rect = canvas.getBoundingClientRect();
+    var cx = t.x + TILE / 2, cy = t.y + TILE / 2;
+    var d0 = Math.hypot(ev.clientX - rect.left - cx, ev.clientY - rect.top - cy) || 1;
+    var s0 = t.scale;
+    h.setPointerCapture(ev.pointerId);
+
+    function move(e) {
+      var d = Math.hypot(e.clientX - rect.left - cx, e.clientY - rect.top - cy);
+      t.scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, s0 * d / d0));
+      applyTransform(el, t);
+      $('ctl-scale').value = t.scale;
+      $('ctl-scale-label').textContent = t.scale.toFixed(1) + '×';
+    }
+    function up() {
+      isDragging = false;
+      h.removeEventListener('pointermove', move);
+      h.removeEventListener('pointerup', up);
+      h.removeEventListener('pointercancel', up);
+      save();
+    }
+    h.addEventListener('pointermove', move);
+    h.addEventListener('pointerup', up);
+    h.addEventListener('pointercancel', up);
+  }
+
   function onTilePointerDown(ev, t, el) {
     ev.preventDefault();
     state.selectedId = t.id;
@@ -552,6 +749,7 @@
     el.style.zIndex = String(t.z);
     Array.prototype.slice.call(canvas.querySelectorAll('.tile.selected')).forEach(function (x) { x.classList.remove('selected'); });
     el.classList.add('selected', 'dragging');
+    attachHandle(el, t);
     isDragging = true;
     renderControls();
 
@@ -599,7 +797,9 @@
   }
 
   // ランダム生成で出したくない並び（不快な読みになるもの）
-  var NG = ['シニ'];
+  // 部分一致で除外する。空文字を入れると全候補が消えてしまうので入れないこと。
+  // 気づいた語があればここに足す運用。
+  var NG = ['シニ', 'シネ'];
 
   // 手札の文字だけを使って、並びをランダムに作る（意味のない造語もアリ）
   function buildRandoms(n) {
@@ -711,7 +911,8 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         tiles: state.tiles, nextId: state.nextId, nextZ: state.nextZ,
-        drawCount: state.drawCount, ensureAll: state.ensureAll, hitomoji: state.hitomoji
+        drawCount: state.drawCount, ensureAll: state.ensureAll, hitomoji: state.hitomoji,
+        charset: state.charset
       }));
     } catch (e) { /* プライベートモード等では保存しない */ }
   }
@@ -722,7 +923,8 @@
       if (!raw) return false;
       var d = JSON.parse(raw);
       if (!d || !Array.isArray(d.tiles) || !d.tiles.length) return false;
-      state.tiles = d.tiles.filter(function (t) { return CHARS.indexOf(t.char) >= 0; });
+      state.charset = SETS[d.charset] ? d.charset : 'sixfonia';
+      state.tiles = d.tiles.filter(function (t) { return ALL_CHARS.indexOf(t.char) >= 0; });
       state.tiles.forEach(function (t) { if (t.opacity == null) t.opacity = 1; });
       if (!state.tiles.length) return false;
       state.nextId = d.nextId || state.tiles.length + 1;
@@ -741,6 +943,26 @@
     save();
   });
   $('ensure-all').addEventListener('change', function () { state.ensureAll = this.checked; save(); });
+
+  // 文字セットの表示を現在の選択に合わせる
+  function syncCharsetUI() {
+    var n = chars().length;
+    $('ensure-all-label').textContent = n + '種すべて最低1枚';
+    // 種類が引く枚数の上限を超えるセットでは「全種そろえる」が成立しない
+    $('ensure-all-field').style.display = n <= parseInt($('draw-count').max, 10) ? '' : 'none';
+    $('header-sub').textContent = state.charset === 'sixfonia'
+      ? 'シ / ク / フ / オ / ニ / !? だけで遊ぶ'
+      : 'カタカナ50音（清音46字）で遊ぶ';
+  }
+
+  Array.prototype.slice.call(document.querySelectorAll('input[name=charset]')).forEach(function (r) {
+    r.addEventListener('change', function () {
+      if (!this.checked) return;
+      state.charset = this.value;
+      syncCharsetUI();
+      draw();            // 字種が混ざらないよう手札は引き直す（「引く前に戻す」で戻れる）
+    });
+  });
   $('opt-hitomoji').addEventListener('change', function () {
     state.hitomoji = this.checked;
     renderCanvas();
@@ -829,6 +1051,9 @@
   $('draw-count-label').textContent = state.drawCount;
   $('ensure-all').checked = state.ensureAll;
   $('opt-hitomoji').checked = state.hitomoji;
+  var radio = document.querySelector('input[name=charset][value="' + state.charset + '"]');
+  if (radio) radio.checked = true;
+  syncCharsetUI();
   renderAll();
 })();
 </script>
