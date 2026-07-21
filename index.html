@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>【非公式】シクフォニ文字あそび</title>
+<style>
+  :root {
+    /* サイト全体は黒基調。キャンバスだけ白（紙）にする。 */
+    --bg: #0c0d10;
+    --panel: #16181d;
+    --panel-2: #1f222a;
+    --line: #2e323d;
+    --fg: #eef0f6;
+    --muted: #9aa1b4;
+    --accent: #6ee7d5;
+    --accent-2: #f7c96b;
+    --tile-fg: #16181d;   /* 白いキャンバスに置く文字の色 */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 16px 14px 40px; }
+
+  header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .04em; }
+  h1 .mark { color: var(--accent); }
+  h1 .unofficial { color: var(--muted); font-size: 15px; font-weight: 700; }
+  header .sub { font-size: 12px; color: var(--muted); }
+
+  details.howto {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 14px; font-size: 13px; color: var(--muted);
+  }
+  details.howto summary { cursor: pointer; color: var(--fg); font-size: 13px; }
+  details.howto ol { margin: 10px 0 0; padding-left: 1.2em; line-height: 1.8; }
+
+  section {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; margin-bottom: 14px;
+  }
+  .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .sec-head { flex-wrap: wrap; }
+  .sec-head h2 { font-size: 13px; margin: 0; color: var(--accent); letter-spacing: .08em; white-space: nowrap; }
+  .sec-head .hint { font-size: 11px; color: var(--muted); }
+
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  label.field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  input[type=range] { accent-color: var(--accent); width: 160px; }
+  input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+  .count-badge {
+    min-width: 2.6em; text-align: center; font-variant-numeric: tabular-nums;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 2px 6px; color: var(--fg); font-size: 13px;
+  }
+
+  button {
+    font: inherit; font-size: 13px; color: var(--fg); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--accent); color: #10221f; border-color: var(--accent); font-weight: 700; }
+  button.small { padding: 5px 9px; font-size: 12px; }
+
+  /* --- 手札トレイ --- */
+  #hand { display: flex; flex-wrap: wrap; gap: 8px; min-height: 58px; align-items: center; }
+  #hand .empty { font-size: 12px; color: var(--muted); }
+  .hand-tile {
+    width: 50px; height: 50px; display: grid; place-items: center;
+    background: transparent; color: var(--fg); border: none; border-radius: 8px;
+    font-size: 26px; font-weight: 700; line-height: 1; padding: 0;
+  }
+  .hand-tile:hover { background: var(--panel-2); }
+  .hand-tile.small-mark { font-size: 19px; }
+
+  /* --- キャンバス --- */
+  #canvas {
+    position: relative; height: 56vh; min-height: 300px; max-height: 460px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(0,0,0,.05) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(0,0,0,.05) 39px 40px),
+      #ffffff;
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden; touch-action: none;
+  }
+  #canvas .placeholder {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 13px; color: var(--muted); pointer-events: none; text-align: center; padding: 20px;
+  }
+  /* 文字は枠なし・背景透明。重ねると下の文字が透けて見える。 */
+  .tile {
+    position: absolute; left: 0; top: 0; width: 56px; height: 56px;
+    display: grid; place-items: center; background: transparent; color: var(--tile-fg);
+    font-size: 40px; font-weight: 700; line-height: 1;
+    cursor: grab; user-select: none; touch-action: none;
+    transform-origin: center center;
+  }
+  .tile.small-mark { font-size: 28px; }
+  .tile canvas { width: 56px; height: 56px; display: block; pointer-events: none; }
+  .tile.selected { outline: 1px dashed #0e9c88; outline-offset: 0; }
+  .tile.dragging { cursor: grabbing; }
+
+  #tile-controls { margin-top: 10px; display: none; }
+  #tile-controls.on { display: block; }
+  #tile-controls .row + .row { margin-top: 8px; }
+  #tile-controls .label { font-size: 12px; color: var(--muted); min-width: 3.2em; }
+
+  /* --- サジェスト --- */
+  #suggest { display: flex; flex-wrap: wrap; gap: 8px; }
+  #suggest .empty { font-size: 12px; color: var(--muted); }
+  .sug {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 12px; display: flex; align-items: baseline; gap: 7px;
+  }
+  .sug:hover { border-color: var(--accent-2); }
+  .sug .w { font-size: 16px; font-weight: 700; letter-spacing: .06em; }
+
+  footer { font-size: 11px; color: var(--muted); line-height: 1.7; text-align: center; margin-top: 22px; }
+
+  @media (max-width: 480px) {
+    input[type=range] { width: 120px; }
+    #canvas { height: 50vh; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><span class="unofficial">【非公式】</span>シクフォニ<span class="mark">文字あそび</span></h1>
+    <span class="sub">シ / ク / フ / オ / ニ / !? だけで遊ぶ</span>
+  </header>
+
+  <details class="howto">
+    <summary>遊びかた</summary>
+    <ol>
+      <li>枚数を決めて <b>引く</b>。6種類の文字がランダムに出ます（同じ文字が何枚出てもOK）。</li>
+      <li>手札の文字をタップするとキャンバスに置かれます。</li>
+      <li><b>人文字にする</b>をONにすると、1画につき1人が体を伸ばして文字を作ります（1文字あたり1〜3人）。拡大すると腕や脚まで見えます。</li>
+      <li>キャンバスの文字はドラッグで移動。選ぶと<b>回転・拡大縮小・反転・濃さ・重ね順</b>を変えられます。文字に枠はないので、<b>そのまま重ねれば線どうしが組み合わさります</b>。</li>
+      <li>「オ→ォ」「ニ→二」の<b>見立て</b>で、小書き文字や漢数字としても使えます。</li>
+      <li>下の<b>作れる言葉例</b>は、今の手札の文字だけをランダムに組んだ並び。意味のあることばとは限りません。押すとキャンバスに並びます。</li>
+      <li>キーボード: <b>R</b>=90°回転 / <b>矢印</b>=微調整 / <b>Delete</b>=手札に戻す</li>
+    </ol>
+  </details>
+
+  <!-- ① ガチャ -->
+  <section>
+    <div class="sec-head"><h2>① もじガチャ</h2></div>
+    <div class="row">
+      <label class="field">
+        枚数
+        <input type="range" id="draw-count" min="6" max="24" step="1" value="6">
+        <span class="count-badge" id="draw-count-label">6</span>
+      </label>
+      <label class="field">
+        <input type="checkbox" id="ensure-all"> 6種すべて最低1枚
+      </label>
+      <button class="primary" id="btn-draw">引く</button>
+      <button class="small" id="btn-undo" disabled>引く前に戻す</button>
+    </div>
+  </section>
+
+  <!-- ② 手札 -->
+  <section>
+    <div class="sec-head"><h2>② 手札</h2><span class="hint">タップでキャンバスへ</span></div>
+    <div id="hand"></div>
+  </section>
+
+  <!-- ③ キャンバス -->
+  <section>
+    <div class="sec-head">
+      <h2>③ ならべる・かさねる・まわす</h2>
+      <span class="hint" id="canvas-hint"></span>
+      <label class="field" style="margin-left:auto">
+        <input type="checkbox" id="opt-hitomoji"> 人文字にする
+      </label>
+    </div>
+    <div id="canvas">
+      <div class="placeholder" id="canvas-placeholder">手札の文字をタップするとここに置かれます</div>
+    </div>
+
+    <div id="tile-controls">
+      <div class="row">
+        <span class="label">回転</span>
+        <input type="range" id="ctl-rot" min="0" max="359" step="1" value="0">
+        <span class="count-badge" id="ctl-rot-label">0°</span>
+        <button class="small" id="ctl-rot-m15">−15°</button>
+        <button class="small" id="ctl-rot-p15">+15°</button>
+        <button class="small" id="ctl-rot-p90">+90°</button>
+      </div>
+      <div class="row">
+        <span class="label">大きさ</span>
+        <input type="range" id="ctl-scale" min="0.5" max="3" step="0.1" value="1">
+        <span class="count-badge" id="ctl-scale-label">1.0×</span>
+        <button class="small" id="ctl-flip">左右反転</button>
+      </div>
+      <div class="row">
+        <span class="label">濃さ</span>
+        <input type="range" id="ctl-opacity" min="0.15" max="1" step="0.05" value="1">
+        <span class="count-badge" id="ctl-opacity-label">100%</span>
+        <span class="hint" style="font-size:11px;color:var(--muted)">薄くすると重ねた下の文字が見えます</span>
+      </div>
+      <div class="row">
+        <span class="label">その他</span>
+        <button class="small" id="ctl-front">前面へ</button>
+        <button class="small" id="ctl-back">背面へ</button>
+        <button class="small" id="ctl-variant">見立て</button>
+        <button class="small" id="ctl-remove">手札に戻す</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <button class="small" id="btn-place-all">すべて置く</button>
+      <button class="small" id="btn-clear">全部もどす</button>
+      <button class="small" id="btn-reset-transform">回転・大きさをリセット</button>
+    </div>
+  </section>
+
+  <!-- ④ サジェスト -->
+  <section>
+    <div class="sec-head">
+      <h2>④ 作れる言葉例</h2>
+      <span class="hint">手札の文字だけでランダムに組んだ並び。押すとキャンバスに並びます</span>
+    </div>
+    <div id="suggest"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="small" id="btn-shuffle-words">別の組み合わせを出す</button>
+    </div>
+  </section>
+
+  <footer>
+    非公式のファン制作物です。シクフォニ及び関係者とは関係ありません。<br>
+    表示された文字の並びに特別な意味はありません。
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // 6パターン。'!?' は2文字だが1タイル＝1パターンとして扱う。
+  var CHARS = ['シ', 'ク', 'フ', 'オ', 'ニ', '!?'];
+  // 見立て（表示だけ差し替え）。index 0 が既定。
+  var VARIANTS = { 'オ': ['オ', 'ォ'], 'ニ': ['ニ', '二'] };
+  var TILE = 56;
+  var STORAGE_KEY = 'sixfonia-moji-asobi/v2';
+
+  var state = { tiles: [], nextId: 1, nextZ: 1, selectedId: null, drawCount: 6, ensureAll: false, randoms: [], hitomoji: false };
+  var undoSnapshot = null;
+  var isDragging = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $('canvas');
+
+  // ---------- ガチャ ----------
+  function draw() {
+    undoSnapshot = JSON.stringify(state);
+    $('btn-undo').disabled = false;
+
+    var n = state.drawCount;
+    var picked = [];
+    if (state.ensureAll) {
+      picked = CHARS.slice();                       // 6種を1枚ずつ確保
+      while (picked.length < n) picked.push(randChar());
+      shuffle(picked);
+    } else {
+      for (var i = 0; i < n; i++) picked.push(randChar());
+    }
+
+    state.tiles = picked.map(function (c) { return newTile(c); });
+    state.nextId = state.tiles.length + 1;
+    state.nextZ = 1;
+    state.selectedId = null;
+    refreshRandoms();
+    renderAll();
+  }
+
+  function randChar() { return CHARS[Math.floor(Math.random() * CHARS.length)]; }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function newTile(c) {
+    return { id: state.nextId++, char: c, placed: false, x: 0, y: 0, rot: 0, scale: 1, flipped: false, z: 0, variant: 0, opacity: 1 };
+  }
+
+  function undoDraw() {
+    if (!undoSnapshot) return;
+    var prev = JSON.parse(undoSnapshot);
+    undoSnapshot = null;
+    $('btn-undo').disabled = true;
+    state.tiles = prev.tiles;
+    state.nextId = prev.nextId;
+    state.nextZ = prev.nextZ;
+    state.selectedId = prev.selectedId;
+    refreshRandoms();
+    renderAll();
+  }
+
+  // ---------- タイル配置 ----------
+  function canvasSize() { return { w: canvas.clientWidth, h: canvas.clientHeight }; }
+
+  function clampPos(t) {
+    var s = canvasSize();
+    t.x = Math.max(0, Math.min(t.x, Math.max(0, s.w - TILE)));
+    t.y = Math.max(0, Math.min(t.y, Math.max(0, s.h - TILE)));
+  }
+
+  function placeTile(t) {
+    if (t.placed) return;
+    var s = canvasSize();
+    var placedCount = state.tiles.filter(function (x) { return x.placed; }).length;
+    // 中央付近から少しずつずらして積む
+    t.x = s.w / 2 - TILE / 2 + (placedCount % 6) * 14 - 35;
+    t.y = s.h / 2 - TILE / 2 + (Math.floor(placedCount / 6) % 4) * 14 - 21;
+    t.placed = true;
+    t.z = state.nextZ++;
+    clampPos(t);
+    state.selectedId = t.id;
+  }
+
+  function unplaceTile(t) {
+    t.placed = false;
+    t.rot = 0; t.scale = 1; t.flipped = false; t.variant = 0; t.opacity = 1;
+    if (state.selectedId === t.id) state.selectedId = null;
+  }
+
+  function displayChar(t) {
+    var v = VARIANTS[t.char];
+    return v ? v[t.variant] : t.char;
+  }
+
+  // ---------- 人文字 ----------
+  // 文字の形に沿って小さな人を敷き詰め、1文字を作る。
+  // タイルは最大3倍まで拡大されるので、3倍(168px)の解像度で描いておく。
+  var RES = 168;
+  // 1画＝1人。人が体を伸ばして文字の一画になる（1文字あたり最大3人）。
+  // 座標は 100×100 の枠での画（ストローク）の折れ線。
+  var STROKES = {
+    'シ': [ [[20, 26], [36, 34]],
+            [[20, 52], [36, 60]],
+            [[72, 18], [26, 74]] ],
+    'ク': [ [[26, 24], [70, 24], [38, 78]],
+            [[42, 30], [26, 56]] ],
+    'フ': [ [[26, 26], [70, 26], [34, 78]] ],
+    'オ': [ [[20, 36], [78, 36]],
+            [[58, 18], [48, 82]],
+            [[52, 48], [24, 78]] ],
+    'ニ': [ [[30, 34], [66, 34]],
+            [[20, 68], [80, 68]] ],
+    '!?': [ [[34, 20], [34, 56]],
+            [[56, 26], [70, 24], [70, 42], [62, 52]] ]
+  };
+  STROKES['二'] = STROKES['ニ'];                                   // 漢数字も同じ形
+  // 小書き文字は元の字を縮めて中央に置く
+  STROKES['ォ'] = STROKES['オ'].map(function (line) {
+    return line.map(function (p) { return [p[0] * 0.62 + 19, p[1] * 0.62 + 21]; });
+  });
+  var DOTS = { '!?': [[34, 70], [62, 70]] };                       // ! と ? の点
+
+  var hitomojiCache = {};   // 表示文字 -> 描画済みキャンバス
+
+  // 折れ線に沿って体を伸ばした人をひとり描く
+  function drawStretchedPerson(g, line, u) {
+    var body = 11 * u;
+    g.strokeStyle = '#16181d';
+    g.fillStyle = '#16181d';
+    g.lineWidth = body;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+
+    g.beginPath();
+    g.moveTo(line[0][0] * u, line[0][1] * u);
+    for (var i = 1; i < line.length; i++) g.lineTo(line[i][0] * u, line[i][1] * u);
+    g.stroke();
+
+    var x0 = line[0][0] * u, y0 = line[0][1] * u;
+    var x1 = line[1][0] * u, y1 = line[1][1] * u;
+    var dx = x1 - x0, dy = y1 - y0;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var ux = dx / len, uy = dy / len;
+
+    // 腕（頭の少し下から左右へ）
+    var ax = x0 + ux * body * 0.85, ay = y0 + uy * body * 0.85;
+    var arm = body * 1.15;
+    g.lineWidth = body * 0.5;
+    [1, -1].forEach(function (sgn) {
+      g.beginPath();
+      g.moveTo(ax, ay);
+      g.lineTo(ax + (-uy * sgn * 0.85 + ux * 0.5) * arm, ay + (ux * sgn * 0.85 + uy * 0.5) * arm);
+      g.stroke();
+    });
+
+    // 脚（末端から2本に分かれる）
+    var e = line[line.length - 1], p = line[line.length - 2];
+    var ex = e[0] * u, ey = e[1] * u;
+    var edx = ex - p[0] * u, edy = ey - p[1] * u;
+    var elen = Math.sqrt(edx * edx + edy * edy) || 1;
+    var vx = edx / elen, vy = edy / elen;
+    var leg = body * 0.9;
+    [0.42, -0.42].forEach(function (a) {
+      var cos = Math.cos(a), sin = Math.sin(a);
+      g.beginPath();
+      g.moveTo(ex, ey);
+      g.lineTo(ex + (vx * cos - vy * sin) * leg, ey + (vx * sin + vy * cos) * leg);
+      g.stroke();
+    });
+
+    // 進行方向の逆側に頭
+    var head = body * 0.72;
+    g.beginPath();
+    g.arc(x0 - ux * head * 1.15, y0 - uy * head * 1.15, head, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  function hitomojiCanvas(ch) {
+    if (hitomojiCache[ch]) return hitomojiCache[ch];
+
+    var out = document.createElement('canvas');
+    out.width = out.height = RES;
+    var g = out.getContext('2d');
+    var u = RES / 100;   // 100×100 の設計座標 → 実解像度
+
+    (STROKES[ch] || []).forEach(function (line) { drawStretchedPerson(g, line, u); });
+    (DOTS[ch] || []).forEach(function (p) {
+      g.beginPath();
+      g.arc(p[0] * u, p[1] * u, 5.5 * u, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    hitomojiCache[ch] = out;
+    return out;
+  }
+
+  function hitomojiEl(ch) {
+    var c = document.createElement('canvas');
+    c.width = c.height = RES;
+    c.getContext('2d').drawImage(hitomojiCanvas(ch), 0, 0);
+    return c;
+  }
+
+  // ---------- 描画 ----------
+  function renderHand() {
+    var hand = $('hand');
+    hand.innerHTML = '';
+    var rest = state.tiles.filter(function (t) { return !t.placed; });
+    if (!rest.length) {
+      var e = document.createElement('span');
+      e.className = 'empty';
+      e.textContent = state.tiles.length ? '手札は全部キャンバスに出ています' : '「引く」で文字を出してください';
+      hand.appendChild(e);
+      return;
+    }
+    rest.forEach(function (t) {
+      var b = document.createElement('button');
+      b.className = 'hand-tile' + (t.char === '!?' ? ' small-mark' : '');
+      b.textContent = t.char;
+      b.title = 'キャンバスに置く';
+      b.addEventListener('click', function () { placeTile(t); renderAll(); });
+      hand.appendChild(b);
+    });
+  }
+
+  // 重ね順を 1..n に振り直す。
+  // z が負になると #canvas（stacking context を作らない position:relative）の
+  // 背景の裏に回り込み、タイルが見えず掴めなくなるため、毎描画で正の値に保つ。
+  function normalizeZ(placed) {
+    placed.slice().sort(function (a, b) { return a.z - b.z; })
+      .forEach(function (t, i) { t.z = i + 1; });
+    state.nextZ = placed.length + 1;
+  }
+
+  function renderCanvas() {
+    Array.prototype.slice.call(canvas.querySelectorAll('.tile')).forEach(function (el) { el.remove(); });
+    var placed = state.tiles.filter(function (t) { return t.placed; });
+    normalizeZ(placed);
+    $('canvas-placeholder').style.display = placed.length ? 'none' : 'grid';
+    $('canvas-hint').textContent = placed.length ? placed.length + ' 枚' : '';
+
+    placed.forEach(function (t) {
+      clampPos(t);
+      var el = document.createElement('div');
+      el.className = 'tile' + (t.char === '!?' ? ' small-mark' : '') + (state.selectedId === t.id ? ' selected' : '');
+      if (state.hitomoji) el.appendChild(hitomojiEl(displayChar(t)));
+      else el.textContent = displayChar(t);
+      el.style.zIndex = String(t.z);
+      applyTransform(el, t);
+      el.addEventListener('pointerdown', function (ev) { onTilePointerDown(ev, t, el); });
+      canvas.appendChild(el);
+    });
+  }
+
+  function applyTransform(el, t) {
+    var sx = t.flipped ? -t.scale : t.scale;
+    el.style.transform = 'translate(' + t.x + 'px,' + t.y + 'px) rotate(' + t.rot + 'deg) scale(' + sx + ',' + t.scale + ')';
+    el.style.opacity = String(t.opacity == null ? 1 : t.opacity);
+  }
+
+  function renderControls() {
+    var t = selected();
+    var box = $('tile-controls');
+    if (!t) { box.className = ''; return; }
+    box.className = 'on';
+    $('ctl-rot').value = t.rot;
+    $('ctl-rot-label').textContent = t.rot + '°';
+    $('ctl-scale').value = t.scale;
+    $('ctl-scale-label').textContent = t.scale.toFixed(1) + '×';
+    var op = t.opacity == null ? 1 : t.opacity;
+    $('ctl-opacity').value = op;
+    $('ctl-opacity-label').textContent = Math.round(op * 100) + '%';
+    var variants = VARIANTS[t.char];
+    var vb = $('ctl-variant');
+    vb.disabled = !variants;
+    vb.textContent = variants
+      ? '見立て ' + displayChar(t) + '→' + variants[t.variant === 0 ? 1 : 0]
+      : '見立て';
+  }
+
+  function selected() {
+    var id = state.selectedId;
+    if (id == null) return null;
+    var t = state.tiles.filter(function (x) { return x.id === id && x.placed; })[0];
+    return t || null;
+  }
+
+  function renderAll() {
+    renderHand();
+    renderCanvas();
+    renderControls();
+    renderSuggest();
+    save();
+  }
+
+  // ---------- ドラッグ ----------
+  function onTilePointerDown(ev, t, el) {
+    ev.preventDefault();
+    state.selectedId = t.id;
+    t.z = state.nextZ++;
+    el.style.zIndex = String(t.z);
+    Array.prototype.slice.call(canvas.querySelectorAll('.tile.selected')).forEach(function (x) { x.classList.remove('selected'); });
+    el.classList.add('selected', 'dragging');
+    isDragging = true;
+    renderControls();
+
+    var rect = canvas.getBoundingClientRect();
+    var offX = ev.clientX - rect.left - t.x;
+    var offY = ev.clientY - rect.top - t.y;
+    el.setPointerCapture(ev.pointerId);
+
+    function move(e) {
+      t.x = e.clientX - rect.left - offX;
+      t.y = e.clientY - rect.top - offY;
+      clampPos(t);
+      applyTransform(el, t);
+    }
+    function up() {
+      isDragging = false;
+      el.classList.remove('dragging');
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      save();
+    }
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  }
+
+  // ---------- サジェスト ----------
+  // 語を「タイル1枚ぶん」の単位に分解する（'!?' は1トークン）
+  function tokenize(word) {
+    var out = [];
+    for (var i = 0; i < word.length; i++) {
+      var two = word.substr(i, 2);
+      if (two === '!?' || two === '！？') { out.push('!?'); i++; continue; }
+      out.push(normalize(word[i]));
+    }
+    return out;
+  }
+
+  // 見立ての揺れを吸収（ォ→オ、二→ニ）
+  function normalize(ch) {
+    if (ch === 'ォ') return 'オ';
+    if (ch === '二') return 'ニ';
+    return ch;
+  }
+
+  // ランダム生成で出したくない並び（不快な読みになるもの）
+  var NG = ['シニ'];
+
+  // 手札の文字だけを使って、並びをランダムに作る（意味のない造語もアリ）
+  function buildRandoms(n) {
+    var pool = state.tiles.map(function (t) { return t.char; });
+    if (pool.length < 2) return [];
+
+    var out = [], seen = {}, tries = 0;
+    while (out.length < n && tries < n * 40) {
+      tries++;
+      var bag = pool.slice();
+      shuffle(bag);
+      var maxLen = Math.min(5, bag.length);
+      var len = 2 + Math.floor(Math.random() * (maxLen - 1));
+      var picked = bag.slice(0, len);
+
+      var w = picked.map(function (c, i) {
+        // たまに小書き・漢数字の字形で見せる（オ→ォ、ニ→二）
+        if (i > 0 && c === 'オ' && Math.random() < 0.5) return 'ォ';
+        if (c === 'ニ' && Math.random() < 0.25) return '二';
+        return c;
+      }).join('');
+
+      var key = tokenize(w).join('');
+      if (seen[key]) continue;
+      var ng = NG.some(function (x) { return key.indexOf(x) >= 0; });
+      if (ng) continue;
+      seen[key] = true;
+      out.push({ w: w, tokens: tokenize(w) });
+    }
+    return out;
+  }
+
+  function refreshRandoms() { state.randoms = buildRandoms(12); }
+
+  function renderSuggest() {
+    var box = $('suggest');
+    box.innerHTML = '';
+    var list = state.randoms || [];
+    if (!list.length) {
+      var e = document.createElement('span');
+      e.className = 'empty';
+      e.textContent = state.tiles.length ? '出しなおしてみてください' : 'まずは「引く」から';
+      box.appendChild(e);
+      return;
+    }
+    list.forEach(function (c) {
+      var b = document.createElement('button');
+      b.className = 'sug';
+      b.innerHTML = '<span class="w"></span>';
+      b.querySelector('.w').textContent = c.w;
+      b.addEventListener('click', function () { arrangeWord(c); });
+      box.appendChild(b);
+    });
+  }
+
+  // 候補語をキャンバス上に横一列で並べる
+  function arrangeWord(c) {
+    var used = [];
+    c.tokens.forEach(function (tk) {
+      // 未使用のタイルから、まず手札（未配置）を優先して割り当てる
+      var pool = state.tiles.filter(function (t) {
+        return t.char === tk && used.indexOf(t.id) < 0;
+      });
+      pool.sort(function (a, b) { return (a.placed ? 1 : 0) - (b.placed ? 1 : 0); });
+      var t = pool[0];
+      if (!t) return;
+      used.push(t.id);
+      t.placed = true;
+      t.rot = 0; t.scale = 1; t.flipped = false; t.opacity = 1;
+      t.z = state.nextZ++;
+    });
+
+    // 見立て（ォ / 二）は元の表記に合わせる
+    var raw = [];
+    for (var i = 0; i < c.w.length; i++) {
+      var two = c.w.substr(i, 2);
+      if (two === '!?' || two === '！？') { raw.push('!?'); i++; continue; }
+      raw.push(c.w[i]);
+    }
+
+    var s = canvasSize();
+    var gap = 6;
+    var total = used.length * TILE + (used.length - 1) * gap;
+    var startX = Math.max(0, (s.w - total) / 2);
+    var y = Math.max(0, s.h / 2 - TILE / 2);
+
+    used.forEach(function (id, i) {
+      var t = state.tiles.filter(function (x) { return x.id === id; })[0];
+      t.x = startX + i * (TILE + gap);
+      t.y = y;
+      var v = VARIANTS[t.char];
+      t.variant = v ? Math.max(0, v.indexOf(raw[i])) : 0;
+      clampPos(t);
+    });
+
+    state.selectedId = null;
+    renderAll();
+  }
+
+  // ---------- 保存 / 復元 ----------
+  // スライダーは input のたびに発火するので、保存はまとめて行う
+  var saveTimer = null;
+  function saveSoon() {
+    if (saveTimer) return;
+    saveTimer = setTimeout(function () { saveTimer = null; save(); }, 300);
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        tiles: state.tiles, nextId: state.nextId, nextZ: state.nextZ,
+        drawCount: state.drawCount, ensureAll: state.ensureAll, hitomoji: state.hitomoji
+      }));
+    } catch (e) { /* プライベートモード等では保存しない */ }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.tiles) || !d.tiles.length) return false;
+      state.tiles = d.tiles.filter(function (t) { return CHARS.indexOf(t.char) >= 0; });
+      state.tiles.forEach(function (t) { if (t.opacity == null) t.opacity = 1; });
+      if (!state.tiles.length) return false;
+      state.nextId = d.nextId || state.tiles.length + 1;
+      state.nextZ = d.nextZ || 1;
+      state.drawCount = d.drawCount || 6;
+      state.ensureAll = !!d.ensureAll;
+      state.hitomoji = !!d.hitomoji;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- イベント ----------
+  $('draw-count').addEventListener('input', function () {
+    state.drawCount = parseInt(this.value, 10);
+    $('draw-count-label').textContent = state.drawCount;
+    save();
+  });
+  $('ensure-all').addEventListener('change', function () { state.ensureAll = this.checked; save(); });
+  $('opt-hitomoji').addEventListener('change', function () {
+    state.hitomoji = this.checked;
+    renderCanvas();
+    save();
+  });
+  $('btn-draw').addEventListener('click', draw);
+  $('btn-undo').addEventListener('click', undoDraw);
+  $('btn-shuffle-words').addEventListener('click', function () { refreshRandoms(); renderSuggest(); });
+
+  $('btn-place-all').addEventListener('click', function () {
+    state.tiles.forEach(function (t) { placeTile(t); });
+    state.selectedId = null;
+    renderAll();
+  });
+  $('btn-clear').addEventListener('click', function () {
+    state.tiles.forEach(unplaceTile);
+    renderAll();
+  });
+  $('btn-reset-transform').addEventListener('click', function () {
+    state.tiles.forEach(function (t) { t.rot = 0; t.scale = 1; t.flipped = false; t.opacity = 1; });
+    renderAll();
+  });
+
+  canvas.addEventListener('pointerdown', function (ev) {
+    if (ev.target === canvas || ev.target.id === 'canvas-placeholder') {
+      state.selectedId = null;
+      renderCanvas();
+      renderControls();
+    }
+  });
+
+  function withSelected(fn) {
+    return function () { var t = selected(); if (!t) return; fn(t); renderCanvas(); renderControls(); saveSoon(); };
+  }
+  $('ctl-rot').addEventListener('input', withSelected(function (t) { t.rot = parseInt($('ctl-rot').value, 10); }));
+  $('ctl-rot-m15').addEventListener('click', withSelected(function (t) { t.rot = (t.rot + 345) % 360; }));
+  $('ctl-rot-p15').addEventListener('click', withSelected(function (t) { t.rot = (t.rot + 15) % 360; }));
+  $('ctl-rot-p90').addEventListener('click', withSelected(function (t) { t.rot = (t.rot + 90) % 360; }));
+  $('ctl-scale').addEventListener('input', withSelected(function (t) { t.scale = parseFloat($('ctl-scale').value); }));
+  $('ctl-opacity').addEventListener('input', withSelected(function (t) { t.opacity = parseFloat($('ctl-opacity').value); }));
+  $('ctl-flip').addEventListener('click', withSelected(function (t) { t.flipped = !t.flipped; }));
+  $('ctl-front').addEventListener('click', withSelected(function (t) { t.z = state.nextZ++; }));
+  $('ctl-back').addEventListener('click', withSelected(function (t) {
+    var min = Math.min.apply(null, state.tiles.filter(function (x) { return x.placed; }).map(function (x) { return x.z; }));
+    t.z = min - 1;
+  }));
+  $('ctl-variant').addEventListener('click', withSelected(function (t) {
+    if (VARIANTS[t.char]) t.variant = t.variant === 0 ? 1 : 0;
+  }));
+  $('ctl-remove').addEventListener('click', function () {
+    var t = selected(); if (!t) return;
+    unplaceTile(t);
+    renderAll();
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    var tag = (ev.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    var t = selected();
+    if (!t) return;
+    var step = ev.shiftKey ? 10 : 2;
+    if (ev.key === 'r' || ev.key === 'R') { t.rot = (t.rot + 90) % 360; }
+    else if (ev.key === 'ArrowLeft')  { t.x -= step; }
+    else if (ev.key === 'ArrowRight') { t.x += step; }
+    else if (ev.key === 'ArrowUp')    { t.y -= step; }
+    else if (ev.key === 'ArrowDown')  { t.y += step; }
+    else if (ev.key === 'Delete' || ev.key === 'Backspace') { unplaceTile(t); renderAll(); ev.preventDefault(); return; }
+    else return;
+    ev.preventDefault();
+    clampPos(t);
+    renderCanvas();
+    renderControls();
+    save();
+  });
+
+  // ドラッグ中に再描画するとキャプチャ中の要素ごと差し替わり、掴んだまま固まるので避ける
+  window.addEventListener('resize', function () { if (!isDragging) renderCanvas(); });
+
+  // ---------- 起動 ----------
+  if (!load()) {
+    state.tiles = [];
+  } else {
+    refreshRandoms();
+  }
+  $('draw-count').value = state.drawCount;
+  $('draw-count-label').textContent = state.drawCount;
+  $('ensure-all').checked = state.ensureAll;
+  $('opt-hitomoji').checked = state.hitomoji;
+  renderAll();
+})();
+</script>
+</body>
+</html>
