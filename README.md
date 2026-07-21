@@ -3,7 +3,7 @@
 「シ・ク・フ・オ・ニ・!?」の6パターンをランダムに引いて、並べ替えたり・重ねたり・回したりして新しいことばを作る、非公式のファン制作ミニサイト。
 
 - リポジトリ: `noname-404cat/unofficial_sixfonia_mozi_asobi_tool`
-- 公開URL: https://noname-404cat.github.io/unofficial_sixfonia_mozi_asobi/
+- 公開URL: https://noname-404cat.github.io/unofficial_sixfonia-moji-asobi/
 - ビルド不要・外部依存ゼロ。`index.html` 1ファイルだけで動く。
 
 ## 遊びかた
