@@ -1,6 +1,6 @@
 // エントリポイント。UIの配線（イベント）と起動処理をまとめる。
 import { STROKES, VARIANTS } from './data.js';
-import { state, $, canvas, flags, save, saveSoon, load } from './store.js';
+import { state, $, flags, save, saveSoon, load } from './store.js';
 import { draw, undoDraw, chars, refreshRandoms } from './gacha.js';
 import {
   renderAll, renderCanvas, renderControls, renderSuggest, selected,
@@ -89,18 +89,11 @@ $('btn-clear').addEventListener('click', function () {
   renderAll();
 });
 $('btn-reset-transform').addEventListener('click', function () {
-  state.tiles.forEach(function (t) { t.rot = 0; t.scale = 1; t.flipped = false; t.opacity = 1; });
+  state.tiles.forEach(function (t) { t.rot = 0; t.scale = 1; t.flipped = false; t.flippedV = false; t.opacity = 1; });
   renderAll();
 });
 
-// 何もないところをタップしたら選択解除
-canvas.addEventListener('pointerdown', function (ev) {
-  if (ev.target === canvas || ev.target.id === 'canvas-placeholder') {
-    state.selectedId = null;
-    renderCanvas();
-    renderControls();
-  }
-});
+// 何もないところのタップでの選択解除は、キャンバス側のポインタ処理（canvas.js）に統合済み。
 
 // ---------- 選択タイルのコントロール ----------
 function withSelected(fn) {
@@ -113,6 +106,7 @@ $('ctl-rot-p90').addEventListener('click', withSelected(function (t) { t.rot = (
 $('ctl-scale').addEventListener('input', withSelected(function (t) { t.scale = parseFloat($('ctl-scale').value); }));
 $('ctl-opacity').addEventListener('input', withSelected(function (t) { t.opacity = parseFloat($('ctl-opacity').value); }));
 $('ctl-flip').addEventListener('click', withSelected(function (t) { t.flipped = !t.flipped; }));
+$('ctl-flip-v').addEventListener('click', withSelected(function (t) { t.flippedV = !t.flippedV; }));
 $('ctl-front').addEventListener('click', withSelected(function (t) { t.z = state.nextZ++; }));
 $('ctl-back').addEventListener('click', withSelected(function (t) {
   var min = Math.min.apply(null, state.tiles.filter(function (x) { return x.placed; }).map(function (x) { return x.z; }));
@@ -135,6 +129,8 @@ document.addEventListener('keydown', function (ev) {
   if (!t) return;
   var step = ev.shiftKey ? 10 : 2;
   if (ev.key === 'r' || ev.key === 'R') { t.rot = (t.rot + 90) % 360; }
+  else if (ev.key === 'h' || ev.key === 'H') { t.flipped = !t.flipped; }   // 左右反転
+  else if (ev.key === 'v' || ev.key === 'V') { t.flippedV = !t.flippedV; } // 上下反転
   else if (ev.key === 'ArrowLeft')  { t.x -= step; }
   else if (ev.key === 'ArrowRight') { t.x += step; }
   else if (ev.key === 'ArrowUp')    { t.y -= step; }

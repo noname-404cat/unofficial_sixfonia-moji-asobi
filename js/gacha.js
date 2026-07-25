@@ -10,7 +10,7 @@ export function chars() {
 function randChar() { var c = chars(); return c[Math.floor(Math.random() * c.length)]; }
 
 export function newTile(c) {
-  return { id: state.nextId++, char: c, placed: false, x: 0, y: 0, rot: 0, scale: 1, flipped: false, z: 0, variant: 0, opacity: 1 };
+  return { id: state.nextId++, char: c, placed: false, x: 0, y: 0, rot: 0, scale: 1, flipped: false, flippedV: false, z: 0, variant: 0, opacity: 1 };
 }
 
 var undoSnapshot = null;

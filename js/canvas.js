@@ -27,7 +27,7 @@ export function placeTile(t) {
 
 export function unplaceTile(t) {
   t.placed = false;
-  t.rot = 0; t.scale = 1; t.flipped = false; t.variant = 0; t.opacity = 1;
+  t.rot = 0; t.scale = 1; t.flipped = false; t.flippedV = false; t.variant = 0; t.opacity = 1;
   if (state.selectedId === t.id) state.selectedId = null;
 }
 
@@ -78,23 +78,24 @@ export function renderCanvas() {
     clampPos(t);
     var el = document.createElement('div');
     el.className = 'tile' + (t.char === '!?' ? ' small-mark' : '') + (state.selectedId === t.id ? ' selected' : '');
+    el.dataset.id = t.id;   // キャンバス側のポインタ処理から引くため
     // 字形データが無い文字（濁音・漢字・英字など）は普通の文字で表示する
     if (state.hitomoji && STROKES[displayChar(t)]) el.appendChild(hitomojiEl(displayChar(t)));
     else el.textContent = displayChar(t);
     el.style.zIndex = String(t.z);
     if (state.selectedId === t.id) addHandles(el, t);
     applyTransform(el, t);
-    el.addEventListener('pointerdown', function (ev) { onTilePointerDown(ev, t, el); });
     canvas.appendChild(el);
   });
 }
 
 function applyTransform(el, t) {
   var sx = t.flipped ? -t.scale : t.scale;
-  el.style.transform = 'translate(' + t.x + 'px,' + t.y + 'px) rotate(' + t.rot + 'deg) scale(' + sx + ',' + t.scale + ')';
+  var sy = t.flippedV ? -t.scale : t.scale;   // 上下反転
+  el.style.transform = 'translate(' + t.x + 'px,' + t.y + 'px) rotate(' + t.rot + 'deg) scale(' + sx + ',' + sy + ')';
   el.style.opacity = String(t.opacity == null ? 1 : t.opacity);
-  // ハンドルはタイルの拡大に引きずられないよう、逆数で打ち消して見た目の大きさを保つ
-  var inv = 'scale(' + (1 / t.scale) * (t.flipped ? -1 : 1) + ',' + (1 / t.scale) + ')';
+  // ハンドルはタイルの拡大・反転に引きずられないよう、逆数で打ち消して見た目の大きさ・向きを保つ
+  var inv = 'scale(' + (1 / t.scale) * (t.flipped ? -1 : 1) + ',' + (1 / t.scale) * (t.flippedV ? -1 : 1) + ')';
   Array.prototype.slice.call(el.querySelectorAll('.handle')).forEach(function (h) { h.style.transform = inv; });
 }
 
@@ -205,76 +206,145 @@ function setScale(t, el, scale) {
   $('ctl-scale-label').textContent = t.scale.toFixed(1) + '×';
 }
 
-// ---------- タイル本体のドラッグ / ピンチ ----------
-// 指1本＝移動、指2本＝ピンチ拡大縮小。ポインタ集合を el._gesture に持つ小さな状態機械。
-function onTilePointerDown(ev, t, el) {
-  ev.preventDefault();
+// ---------- キャンバスのポインタ操作（ドラッグ / 2本指で拡大・回転） ----------
+// 56pxの小さなタイルの上に指2本は乗らないので、変形はキャンバス全体で受け、
+// 対象を「選択中タイル」にする（スマホでも拡大・回転できるようにするため）。
+// ポインタは全てキャンバスにキャプチャして扱う。
+var G = {
+  pointers: new Map(), mode: 'idle', tile: null, el: null,
+  offX: 0, offY: 0, dist0: 1, ang0: 0, scale0: 1, rot0: 0,
+  startedEmpty: false, moved: false, bound: false
+};
+
+function tileElById(id) { return canvas.querySelector('.tile[data-id="' + id + '"]'); }
+function selectedEl() { return state.selectedId == null ? null : tileElById(state.selectedId); }
+
+// 2本指の距離と角度（回転の基準）
+function twoPointerMetrics() {
+  var p = Array.from(G.pointers.values());
+  var dx = p[0].x - p[1].x, dy = p[0].y - p[1].y;
+  return { dist: Math.hypot(dx, dy) || 1, ang: Math.atan2(dy, dx) * 180 / Math.PI };
+}
+
+// タイルを選択（前面へ・選択枠・ハンドル・コントロール更新）
+function selectTile(t, el) {
   state.selectedId = t.id;
   t.z = state.nextZ++;
   el.style.zIndex = String(t.z);
   Array.prototype.slice.call(canvas.querySelectorAll('.tile.selected')).forEach(function (x) { x.classList.remove('selected'); });
   el.classList.add('selected', 'dragging');
   attachHandle(el, t);
-  flags.isDragging = true;
   renderControls();
+}
 
-  var rect = canvas.getBoundingClientRect();
-  var G = el._gesture || (el._gesture = { pointers: new Map(), mode: 'idle', bound: false });
-  el.setPointerCapture(ev.pointerId);
+function onCanvasPointerDown(ev) {
+  // ハンドル上の pointerdown は stopPropagation で来ない（マウス用ハンドルは別処理）
+  var tileEl = ev.target.closest ? ev.target.closest('.tile') : null;
+  ev.preventDefault();
+  canvas.setPointerCapture(ev.pointerId);
   G.pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
 
   if (G.pointers.size === 1) {
-    G.mode = 'drag';
-    G.offX = ev.clientX - rect.left - t.x;
-    G.offY = ev.clientY - rect.top - t.y;
+    G.moved = false;
+    if (tileEl) {
+      var t = state.tiles.filter(function (x) { return x.id === +tileEl.dataset.id && x.placed; })[0];
+      if (t) {
+        G.startedEmpty = false;
+        selectTile(t, tileEl);
+        G.mode = 'drag'; G.tile = t; G.el = tileEl;
+        var rect = canvas.getBoundingClientRect();
+        G.offX = ev.clientX - rect.left - t.x;
+        G.offY = ev.clientY - rect.top - t.y;
+        flags.isDragging = true;
+      }
+    } else {
+      G.startedEmpty = true;      // 何もない所 → 離したときに選択解除（2本指の起点になる場合に備え即解除しない）
+      G.mode = 'idle'; G.tile = null; G.el = null;
+    }
   } else if (G.pointers.size === 2) {
-    G.mode = 'pinch';
-    var pts = Array.from(G.pointers.values());
-    G.dist0 = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
-    G.scale0 = t.scale;
-  }
-
-  if (G.bound) return;           // move/up は最初の指のときだけ張る
-  G.bound = true;
-
-  function move(e) {
-    if (!G.pointers.has(e.pointerId)) return;
-    G.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (G.mode === 'pinch' && G.pointers.size >= 2) {
-      var p = Array.from(G.pointers.values());
-      var d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
-      setScale(t, el, G.scale0 * d / G.dist0);   // 位置は動かさず倍率だけ変える
-    } else if (G.mode === 'drag') {
-      var only = G.pointers.values().next().value;
-      t.x = only.x - rect.left - G.offX;
-      t.y = only.y - rect.top - G.offY;
-      clampPos(t);
-      applyTransform(el, t);
-    }
-  }
-  function up(e) {
-    G.pointers.delete(e.pointerId);
-    if (G.pointers.size === 1) {
-      // ピンチ→1本に戻ったら、残った指で移動を続けられるよう基準を取り直す（位置飛び防止）
-      G.mode = 'drag';
-      var only = G.pointers.values().next().value;
-      G.offX = only.x - rect.left - t.x;
-      G.offY = only.y - rect.top - t.y;
-    } else if (G.pointers.size === 0) {
+    // 選択中タイルを対象に拡大＋回転を開始（指の位置はキャンバス上ならどこでもよい）
+    var st = selected(), sel = selectedEl();
+    if (st && sel) {
+      G.mode = 'transform'; G.tile = st; G.el = sel;
+      var m = twoPointerMetrics();
+      G.dist0 = m.dist; G.ang0 = m.ang; G.scale0 = st.scale; G.rot0 = st.rot;
+      flags.isDragging = true;
+    } else {
       G.mode = 'idle';
-      G.bound = false;
-      flags.isDragging = false;
-      el.classList.remove('dragging');
-      el.removeEventListener('pointermove', move);
-      el.removeEventListener('pointerup', up);
-      el.removeEventListener('pointercancel', up);
-      save();
     }
   }
-  el.addEventListener('pointermove', move);
-  el.addEventListener('pointerup', up);
-  el.addEventListener('pointercancel', up);
+
+  if (G.bound) return;            // move/up はジェスチャ開始時に一度だけ張る
+  G.bound = true;
+  canvas.addEventListener('pointermove', onCanvasPointerMove);
+  canvas.addEventListener('pointerup', onCanvasPointerUp);
+  canvas.addEventListener('pointercancel', onCanvasPointerUp);
 }
+
+function onCanvasPointerMove(e) {
+  if (!G.pointers.has(e.pointerId)) return;
+  var prev = G.pointers.get(e.pointerId);
+  G.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y) > 2) G.moved = true;
+
+  if (G.mode === 'transform' && G.pointers.size >= 2 && G.tile) {
+    var m = twoPointerMetrics();
+    setScale(G.tile, G.el, G.scale0 * m.dist / G.dist0);   // 位置は変えず、拡大と回転だけ
+    var r = G.rot0 + (m.ang - G.ang0);
+    G.tile.rot = ((Math.round(r) % 360) + 360) % 360;
+    applyTransform(G.el, G.tile);
+    $('ctl-rot').value = G.tile.rot;
+    $('ctl-rot-label').textContent = G.tile.rot + '°';
+  } else if (G.mode === 'drag' && G.tile && G.pointers.size === 1) {
+    var rect = canvas.getBoundingClientRect();
+    var only = Array.from(G.pointers.values())[0];
+    G.tile.x = only.x - rect.left - G.offX;
+    G.tile.y = only.y - rect.top - G.offY;
+    clampPos(G.tile);
+    applyTransform(G.el, G.tile);
+  }
+}
+
+function onCanvasPointerUp(e) {
+  G.pointers.delete(e.pointerId);
+
+  if (G.pointers.size === 1) {
+    // 2本指→1本：残った指で選択中タイルの移動を続けられるよう基準を取り直す（位置飛び防止）
+    var st = selected(), sel = selectedEl();
+    if (st && sel) {
+      G.mode = 'drag'; G.tile = st; G.el = sel;
+      var rect = canvas.getBoundingClientRect();
+      var only = Array.from(G.pointers.values())[0];
+      G.offX = only.x - rect.left - st.x;
+      G.offY = only.y - rect.top - st.y;
+    } else {
+      G.mode = 'idle';
+    }
+    return;
+  }
+
+  if (G.pointers.size === 0) {
+    var wasActive = (G.mode === 'drag' || G.mode === 'transform');
+    // 何もない所を「動かさずに」タップして離したときだけ選択解除
+    if (G.startedEmpty && !G.moved) {
+      state.selectedId = null;
+      renderCanvas();
+      renderControls();
+    } else {
+      var sel2 = selectedEl();
+      if (sel2) sel2.classList.remove('dragging');
+    }
+    G.mode = 'idle'; G.bound = false; G.tile = null; G.el = null;
+    G.startedEmpty = false; G.moved = false;
+    flags.isDragging = false;
+    canvas.removeEventListener('pointermove', onCanvasPointerMove);
+    canvas.removeEventListener('pointerup', onCanvasPointerUp);
+    canvas.removeEventListener('pointercancel', onCanvasPointerUp);
+    if (wasActive) save();
+  }
+}
+
+canvas.addEventListener('pointerdown', onCanvasPointerDown);
 
 // ---------- サジェスト ----------
 export function renderSuggest() {
@@ -311,7 +381,7 @@ function arrangeWord(c) {
     if (!t) return;
     used.push(t.id);
     t.placed = true;
-    t.rot = 0; t.scale = 1; t.flipped = false; t.opacity = 1;
+    t.rot = 0; t.scale = 1; t.flipped = false; t.flippedV = false; t.opacity = 1;
     t.z = state.nextZ++;
   });
 

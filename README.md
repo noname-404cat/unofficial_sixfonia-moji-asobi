@@ -2,8 +2,8 @@
 
 「シ・ク・フ・オ・ニ・!?」の6パターンをランダムに引いて、並べ替えたり・重ねたり・回したりして新しいことばを作る、非公式のファン制作ミニサイト。文字は**1画＝1人の人文字**で描かれる（切り替え可）。
 
-- リポジトリ: `noname-404cat/unofficial_sixfonia_mozi_asobi_tool`
-- 公開URL: https://noname-404cat.github.io/unofficial_sixfonia_mozi_asobi_tool/ （公開後に有効）
+- リポジトリ: `noname-404cat/unofficial_sixfonia-moji-asobi`
+- 公開URL: https://noname-404cat.github.io/unofficial_sixfonia-moji-asobi/ （公開後に有効）
 - ビルド不要・外部依存ゼロ。HTML / CSS / JS（ESモジュール）に分離。
 - **サーバ経由で開くこと**（ESモジュールを使うため、`index.html` のダブルクリック＝`file://` では読み込めない）。ローカルは `serve.ps1`、公開は GitHub Pages（どちらもhttpなのでOK）。
 
@@ -29,13 +29,14 @@ js/
    セットを切り替えると手札は引き直しになる（字種が混ざらないようにするため。「引く前に戻す」で戻せる）。
    「全種すべて最低1枚」は種類数が枚数上限を超える50音では表示されない。
 2. 手札の文字をタップするとキャンバスに置かれる。
-3. キャンバス上ではドラッグで移動、選択すると **回転 / 拡大縮小 / 左右反転 / 濃さ / 重ね順 / 見立て（オ→ォ、ニ→二）** を変更したり、手札に戻したりできる。
+3. キャンバス上ではドラッグで移動、選択すると **回転 / 拡大縮小 / 左右反転 / 上下反転 / 濃さ / 重ね順 / 見立て（オ→ォ、ニ→二）** を変更したり、手札に戻したりできる。
    文字に枠や背景はないので、**重ねると線どうしが組み合わさる**。
-   選択中の文字の**右下の丸をドラッグで大きさ、左上の丸をドラッグで回転**（回転はShiftを押すと15°刻み）。倍率はスライダーと同じ 0.5〜3.0 の範囲。
-   スマホなど**タッチ操作では、2本指のピンチで拡大縮小**できる（1本指はドラッグ移動）。
+   - **マウス**: 選択中の文字の**右下の丸をドラッグで大きさ、左上の丸をドラッグで回転**（回転はShiftを押すと15°刻み）。倍率はスライダーと同じ 0.5〜3.0 の範囲。
+   - **スマホ（タッチ）**: 文字をタップで選び、**2本指でつまむと拡大縮小＋回転**（対象は選択中の文字。小さな文字の上に指が乗らなくてよいよう、指はキャンバス上のどこに置いてもOK）。1本指はドラッグ移動。
+   - **反転**: 「左右反転」「上下反転」ボタン、またはキーボード `H` / `V`。
 4. 「作れる言葉例」は、**今の手札の文字だけをランダムに組んだ並び**を12件表示する。意味のあることばとは限らない。押すとキャンバスに整列配置され、「別の組み合わせを出す」で引き直せる。
 5. **人文字にする** は**既定でON**。**1画＝1人**が体を伸ばして文字を作る（1文字あたり1〜4人。`ネ` `ホ` は4画なので4人）。回転・重ね・濃さ・見立てはそのまま効く。OFFにすると普通の文字になる。
-6. キーボード: `R`=90°回転 / 矢印=微調整（Shiftで10px）/ `Delete`=手札に戻す
+6. キーボード: `R`=90°回転 / `H`=左右反転 / `V`=上下反転 / 矢印=微調整（Shiftで10px）/ `Delete`=手札に戻す
 
 配置は localStorage に自動保存され、リロードしても復元される（端末をまたぐ共有はしない）。
 
@@ -52,7 +53,8 @@ js/
 | ォ・二 の出やすさ | `js/gacha.js` の `buildRandoms()` 内の `Math.random()` のしきい値 |
 | 人文字の字形・人数 | `js/data.js` の `STROKES`（カタカナ46字＋`!?` を100×100座標の折れ線で定義。1本＝1人。`ォ` は `オ` から自動生成、`二` は `ニ` を流用） |
 | 人ひとりの形 | `js/hitomoji.js` の `drawStretchedPerson()`（胴＝折れ線、頭・腕・脚を付加。`body` が太さの基準） |
-| 倍率の範囲・ピンチ | `js/data.js` の `SCALE_MIN` / `SCALE_MAX`。ピンチとドラッグの処理は `js/canvas.js` の `onTilePointerDown()` |
+| 倍率の範囲 | `js/data.js` の `SCALE_MIN` / `SCALE_MAX` |
+| タッチ/マウス操作 | `js/canvas.js`。ドラッグ・2本指の拡大＋回転は `onCanvasPointerDown()`（キャンバス全体で受け、対象は選択中タイル）。マウス用の右下＝拡大・左上＝回転ハンドルは `onResizePointerDown()` / `onRotatePointerDown()` |
 
 ## ローカル確認
 
@@ -68,7 +70,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File serve.ps1
 ```bash
 gh auth status                     # noname-404cat になっているか確認
 git init && git add -A && git commit -m "初回コミット"
-gh repo create noname-404cat/unofficial_sixfonia_mozi_asobi_tool --public --source=. --push
+gh repo create noname-404cat/unofficial_sixfonia-moji-asobi --public --source=. --push
 ```
 
 その後 Settings → Pages で `main` / `/`(root) を公開元に設定する。

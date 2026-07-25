@@ -18,9 +18,9 @@
     <summary>遊びかた</summary>
     <ol>
       <li>文字は最初から<b>人文字</b>（人が体を伸ばして字を作る）。「人文字にする」をOFFにすると普通の文字になります。</li>
-      <li>選んだ文字を、<b>右下の丸で大きさ・左上の丸で回転</b>。スマホは<b>2本指のピンチで拡大縮小</b>。ドラッグで動かして自由に並べられます。</li>
+      <li>文字を選ぶと<b>回転・大きさ・左右/上下反転</b>ができます。マウスは<b>右下の丸で大きさ・左上の丸で回転</b>、スマホは<b>2本指でつまむと拡大縮小＆回転</b>（選択中の文字が対象。指はどこでもOK）。</li>
       <li><b>自由入力</b>なら好きな言葉（例:「しんごうき」）で遊べます。ひらがなはカタカナになります。</li>
-      <li>キーボード: <b>R</b>=90°回転 / <b>矢印</b>=微調整（<b>Shift</b>で大きく）/ <b>Delete</b>=手札に戻す</li>
+      <li>キーボード: <b>R</b>=90°回転 / <b>H</b>=左右反転 / <b>V</b>=上下反転 / <b>矢印</b>=微調整（<b>Shift</b>で大きく）/ <b>Delete</b>=手札に戻す</li>
     </ol>
   </details>
 
@@ -87,6 +87,7 @@
         <input type="range" id="ctl-scale" min="0.5" max="3" step="0.1" value="1">
         <span class="count-badge" id="ctl-scale-label">1.0×</span>
         <button class="small" id="ctl-flip">左右反転</button>
+        <button class="small" id="ctl-flip-v">上下反転</button>
       </div>
       <div class="row">
         <span class="label">濃さ</span>
