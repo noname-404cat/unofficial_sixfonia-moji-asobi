@@ -53,6 +53,7 @@ js/
 | ォ・二 の出やすさ | `js/gacha.js` の `buildRandoms()` 内の `Math.random()` のしきい値 |
 | 人文字の字形・人数 | `js/data.js` の `STROKES`（カタカナ46字＋`!?` を100×100座標の折れ線で定義。1本＝1人。`ォ` は `オ` から自動生成、`二` は `ニ` を流用） |
 | 人ひとりの形 | `js/hitomoji.js` の `drawStretchedPerson()`（胴＝折れ線、頭・腕・脚を付加。`body` が太さの基準） |
+| 片腕だけの長さ | `js/data.js` で画に `arms` を付ける（例: `STROKES['ネ'][3].arms = [1, 1.9]`。`[左, 右]` の倍率で、左右は画が下向きのときの画面上の左右） |
 | 倍率の範囲 | `js/data.js` の `SCALE_MIN` / `SCALE_MAX` |
 | タッチ/マウス操作 | `js/canvas.js`。ドラッグ・2本指の拡大＋回転は `onCanvasPointerDown()`（キャンバス全体で受け、対象は選択中タイル）。マウス用の右下＝拡大・左上＝回転ハンドルは `onResizePointerDown()` / `onRotatePointerDown()` |
 
