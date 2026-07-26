@@ -24,13 +24,16 @@ export function drawStretchedPerson(g, line, u) {
   var ux = dx / len, uy = dy / len;
 
   // 腕（頭の少し下から左右へ）
+  // line.arms = [左, 右] を付けると片腕だけ伸縮できる（既定は等倍。左右は画が下向きのときの画面上の左右）
   var ax = x0 + ux * body * 0.85, ay = y0 + uy * body * 0.85;
   var arm = body * 1.15;
+  var armScale = line.arms || [1, 1];
   g.lineWidth = body * 0.5;
-  [1, -1].forEach(function (sgn) {
+  [1, -1].forEach(function (sgn, i) {
+    var a = arm * armScale[i];
     g.beginPath();
     g.moveTo(ax, ay);
-    g.lineTo(ax + (-uy * sgn * 0.85 + ux * 0.5) * arm, ay + (ux * sgn * 0.85 + uy * 0.5) * arm);
+    g.lineTo(ax + (-uy * sgn * 0.85 + ux * 0.5) * a, ay + (ux * sgn * 0.85 + uy * 0.5) * a);
     g.stroke();
   });
 
