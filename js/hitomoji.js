@@ -1,13 +1,16 @@
 // 人文字の描画。文字の形（STROKES）に沿って小さな人を敷き詰め、1文字を作る。
-import { STROKES, DOTS, RES } from './data.js';
+import { STROKES, DOTS, RES, INK, MARGIN, ZOOM } from './data.js';
+
+var FRAME = 100 + 2 * MARGIN;                 // 余白つきの描画枠（設計単位）
+var SIZE = Math.round(RES * FRAME / 100);      // 描画キャンバスの一辺(px)
 
 var hitomojiCache = {};   // 表示文字 -> 描画済みキャンバス
 
 // 折れ線に沿って体を伸ばした人をひとり描く
 export function drawStretchedPerson(g, line, u) {
   var body = 11 * u;
-  g.strokeStyle = '#16181d';
-  g.fillStyle = '#16181d';
+  g.strokeStyle = INK;
+  g.fillStyle = INK;
   g.lineWidth = body;
   g.lineCap = 'round';
   g.lineJoin = 'round';
@@ -63,12 +66,22 @@ function hitomojiCanvas(ch) {
   if (hitomojiCache[ch]) return hitomojiCache[ch];
 
   var out = document.createElement('canvas');
-  out.width = out.height = RES;
+  out.width = out.height = SIZE;
   var g = out.getContext('2d');
   var u = RES / 100;   // 100×100 の設計座標 → 実解像度
+  g.translate(MARGIN * u, MARGIN * u);   // 設計枠の外に余白を取る
 
-  (STROKES[ch] || []).forEach(function (line) { drawStretchedPerson(g, line, u); });
-  (DOTS[ch] || []).forEach(function (p) {
+  // 中心 (50,50) から線を広げる。人の太さ・手足の長さは変えない
+  var k = ZOOM[ch] || 1;
+  var zoom = function (p) { return [50 + (p[0] - 50) * k, 50 + (p[1] - 50) * k]; };
+
+  (STROKES[ch] || []).forEach(function (line) {
+    var z = line.map(zoom);
+    if (line.arms) z.arms = line.arms;
+    drawStretchedPerson(g, z, u);
+  });
+  (DOTS[ch] || []).forEach(function (p0) {
+    var p = zoom(p0);
     g.beginPath();
     g.arc(p[0] * u, p[1] * u, 5.5 * u, 0, Math.PI * 2);
     g.fill();
@@ -80,7 +93,7 @@ function hitomojiCanvas(ch) {
 
 export function hitomojiEl(ch) {
   var c = document.createElement('canvas');
-  c.width = c.height = RES;
+  c.width = c.height = SIZE;
   c.getContext('2d').drawImage(hitomojiCanvas(ch), 0, 0);
   return c;
 }

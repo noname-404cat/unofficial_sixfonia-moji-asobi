@@ -1,5 +1,5 @@
 // タイルの配置・変形・操作（ドラッグ / リサイズ / 回転 / ピンチ）と、各セクションの描画。
-import { TILE, SCALE_MIN, SCALE_MAX, VARIANTS, STROKES } from './data.js';
+import { TILE, TILE_INK, STEP, SCALE_MIN, SCALE_MAX, VARIANTS, STROKES } from './data.js';
 import { hitomojiEl } from './hitomoji.js';
 import { state, $, canvas, flags, save, saveSoon } from './store.js';
 
@@ -8,8 +8,10 @@ export function canvasSize() { return { w: canvas.clientWidth, h: canvas.clientH
 
 export function clampPos(t) {
   var s = canvasSize();
-  t.x = Math.max(0, Math.min(t.x, Math.max(0, s.w - TILE)));
-  t.y = Math.max(0, Math.min(t.y, Math.max(0, s.h - TILE)));
+  // タイルの余白ぶん(PAD)は枠外に出てよい。文字そのものがキャンバスの縁まで届くようにする
+  var pad = (TILE - TILE_INK) / 2;
+  t.x = Math.max(-pad, Math.min(t.x, Math.max(-pad, s.w - TILE + pad)));
+  t.y = Math.max(-pad, Math.min(t.y, Math.max(-pad, s.h - TILE + pad)));
 }
 
 export function placeTile(t) {
@@ -207,7 +209,7 @@ function setScale(t, el, scale) {
 }
 
 // ---------- キャンバスのポインタ操作（ドラッグ / 2本指で拡大・回転） ----------
-// 56pxの小さなタイルの上に指2本は乗らないので、変形はキャンバス全体で受け、
+// 小さなタイルの上に指2本は乗らないので、変形はキャンバス全体で受け、
 // 対象を「選択中タイル」にする（スマホでも拡大・回転できるようにするため）。
 // ポインタは全てキャンバスにキャプチャして扱う。
 var G = {
@@ -394,14 +396,14 @@ function arrangeWord(c) {
   }
 
   var s = canvasSize();
-  var gap = 6;
-  var total = used.length * TILE + (used.length - 1) * gap;
-  var startX = Math.max(0, (s.w - total) / 2);
+  var pad = (TILE - TILE_INK) / 2;
+  var total = TILE_INK + (used.length - 1) * STEP;   // 文字そのもの(余白を除く)の並びの幅
+  var startX = Math.max(0, (s.w - total) / 2) - pad;
   var y = Math.max(0, s.h / 2 - TILE / 2);
 
   used.forEach(function (id, i) {
     var t = state.tiles.filter(function (x) { return x.id === id; })[0];
-    t.x = startX + i * (TILE + gap);
+    t.x = startX + i * STEP;
     t.y = y;
     var v = VARIANTS[t.char];
     t.variant = v ? Math.max(0, v.indexOf(raw[i])) : 0;

@@ -47,13 +47,15 @@ js/
 | 文字セットの中身・追加 | `js/data.js` の `SETS`（`sixfonia` / `kana`。加えて `free`＝自由入力があり、こちらは `parseFreeChars()` が入力欄の文字列を解釈する） |
 | 自由入力の解釈 | `js/data.js` の `parseFreeChars()`（空白除去、`toKatakana()` でひらがな→カタカナ、`!?` は2文字で1タイル） |
 | 出したくない並び | `js/data.js` の `NG` 配列（初期値は `シニ` `シネ`。部分一致で除外。**空文字 `''` を入れると全候補が消えるので注意**。フィルタ不要なら空配列 `[]` にする） |
-| 配色 | `styles.css` の `:root` の `--accent`（ゴールド `#b8860b`）ほか。キャンバスだけ白、他は黒基調 |
+| 配色 | `styles.css` の `:root` の `--accent`（水色 `#198599`。暗い背景上の文字用に明るい `--accent-2` `#4db8cc`）ほか。キャンバスだけ白、他は黒基調。人文字の色は `js/data.js` の `INK` と `--tile-fg` を揃えて変える |
 | 候補の表示件数 | `js/gacha.js` の `refreshRandoms()` の `buildRandoms(12)` |
 | 候補の長さ | `js/gacha.js` の `buildRandoms()` の `maxLen`（初期値は最大5文字） |
 | ォ・二 の出やすさ | `js/gacha.js` の `buildRandoms()` 内の `Math.random()` のしきい値 |
 | 人文字の字形・人数 | `js/data.js` の `STROKES`（カタカナ46字＋`!?` を100×100座標の折れ線で定義。1本＝1人。`ォ` は `オ` から自動生成、`二` は `ニ` を流用） |
 | 人ひとりの形 | `js/hitomoji.js` の `drawStretchedPerson()`（胴＝折れ線、頭・腕・脚を付加。`body` が太さの基準） |
 | 片腕だけの長さ | `js/data.js` で画に `arms` を付ける（例: `STROKES['ネ'][3].arms = [1, 1.9]`。`[左, 右]` の倍率で、左右は画が下向きのときの画面上の左右） |
+| 字ごとの大きさ（線の広がり） | `js/data.js` の `ZOOM`（字ごとに中心から線を広げる倍率。人の太さ・手足は変わらない。線が密で見づらい字は大きめにする。無指定は 1） |
+| タイルの大きさ・余白 | `js/data.js` の `MARGIN` / `TILE` / `TILE_INK` / `STEP`（字の設計枠 100×100＝56px の外に余白を足したものがタイル。`TILE` を変えたら `styles.css` の `.tile` の幅・高さも揃える） |
 | 倍率の範囲 | `js/data.js` の `SCALE_MIN` / `SCALE_MAX` |
 | タッチ/マウス操作 | `js/canvas.js`。ドラッグ・2本指の拡大＋回転は `onCanvasPointerDown()`（キャンバス全体で受け、対象は選択中タイル）。マウス用の右下＝拡大・左上＝回転ハンドルは `onResizePointerDown()` / `onRotatePointerDown()` |
 
