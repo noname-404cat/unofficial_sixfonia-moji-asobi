@@ -1,5 +1,5 @@
 // タイルの配置・変形・操作（ドラッグ / リサイズ / 回転 / ピンチ）と、各セクションの描画。
-import { TILE, TILE_INK, STEP, SCALE_MIN, SCALE_MAX, VARIANTS, STROKES } from './data.js';
+import { TILE, TILE_INK, STEP, SCALE_MIN, SCALE_MAX, DEFAULT_SCALE, VARIANTS, STROKES } from './data.js';
 import { hitomojiEl } from './hitomoji.js';
 import { state, $, canvas, flags, save, saveSoon } from './store.js';
 
@@ -29,7 +29,7 @@ export function placeTile(t) {
 
 export function unplaceTile(t) {
   t.placed = false;
-  t.rot = 0; t.scale = 1; t.flipped = false; t.flippedV = false; t.variant = 0; t.opacity = 1;
+  t.rot = 0; t.scale = DEFAULT_SCALE; t.flipped = false; t.flippedV = false; t.variant = 0; t.opacity = 1;
   if (state.selectedId === t.id) state.selectedId = null;
 }
 
@@ -383,7 +383,7 @@ function arrangeWord(c) {
     if (!t) return;
     used.push(t.id);
     t.placed = true;
-    t.rot = 0; t.scale = 1; t.flipped = false; t.flippedV = false; t.opacity = 1;
+    t.rot = 0; t.scale = DEFAULT_SCALE; t.flipped = false; t.flippedV = false; t.opacity = 1;
     t.z = state.nextZ++;
   });
 
@@ -396,14 +396,18 @@ function arrangeWord(c) {
   }
 
   var s = canvasSize();
-  var pad = (TILE - TILE_INK) / 2;
-  var total = TILE_INK + (used.length - 1) * STEP;   // 文字そのもの(余白を除く)の並びの幅
-  var startX = Math.max(0, (s.w - total) / 2) - pad;
+  // 拡大は各タイルの中心を基準に行われるので、中心どうしを STEP×倍率 ずつ離して並べる。
+  // 画面に収まらない長い語は、倍率を下げて収める。
+  var fit = (s.w - 16) / (TILE_INK + (used.length - 1) * STEP);
+  var sc = Math.max(SCALE_MIN, Math.min(DEFAULT_SCALE, fit));
+  var gap = STEP * sc;
+  var firstCx = s.w / 2 - (used.length - 1) * gap / 2;   // 先頭タイルの中心x
   var y = Math.max(0, s.h / 2 - TILE / 2);
 
   used.forEach(function (id, i) {
     var t = state.tiles.filter(function (x) { return x.id === id; })[0];
-    t.x = startX + i * STEP;
+    t.scale = sc;
+    t.x = firstCx + i * gap - TILE / 2;
     t.y = y;
     var v = VARIANTS[t.char];
     t.variant = v ? Math.max(0, v.indexOf(raw[i])) : 0;
