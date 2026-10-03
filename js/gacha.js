@@ -1,5 +1,5 @@
 // ガチャ（引く / 戻す）と、手札からの語ランダム生成。DOM は直接触らず state を更新する。
-import { SETS, parseFreeChars, shuffle, tokenize, NG } from './data.js';
+import { SETS, parseFreeChars, shuffle, tokenize, NG, DEFAULT_SCALE } from './data.js';
 import { state, $ } from './store.js';
 import { renderAll } from './canvas.js';
 
@@ -10,7 +10,7 @@ export function chars() {
 function randChar() { var c = chars(); return c[Math.floor(Math.random() * c.length)]; }
 
 export function newTile(c) {
-  return { id: state.nextId++, char: c, placed: false, x: 0, y: 0, rot: 0, scale: 1, flipped: false, flippedV: false, z: 0, variant: 0, opacity: 1 };
+  return { id: state.nextId++, char: c, placed: false, x: 0, y: 0, rot: 0, scale: DEFAULT_SCALE, flipped: false, flippedV: false, z: 0, variant: 0, opacity: 1 };
 }
 
 var undoSnapshot = null;

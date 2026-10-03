@@ -1,5 +1,5 @@
 // エントリポイント。UIの配線（イベント）と起動処理をまとめる。
-import { STROKES, VARIANTS } from './data.js';
+import { STROKES, VARIANTS, DEFAULT_SCALE } from './data.js';
 import { state, $, flags, save, saveSoon, load } from './store.js';
 import { draw, undoDraw, chars, refreshRandoms } from './gacha.js';
 import {
@@ -89,7 +89,7 @@ $('btn-clear').addEventListener('click', function () {
   renderAll();
 });
 $('btn-reset-transform').addEventListener('click', function () {
-  state.tiles.forEach(function (t) { t.rot = 0; t.scale = 1; t.flipped = false; t.flippedV = false; t.opacity = 1; });
+  state.tiles.forEach(function (t) { t.rot = 0; t.scale = DEFAULT_SCALE; t.flipped = false; t.flippedV = false; t.opacity = 1; });
   renderAll();
 });
 
