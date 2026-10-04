@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>【非公式】シクフォニ人文字あそび（画像版）</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-variant="image">
+<div class="wrap">
+
+  <header>
+    <h1><span class="unofficial">【非公式】</span>シクフォニ<span class="mark">人文字あそび</span><span class="unofficial">（画像版）</span></h1>
+    <span class="sub" id="header-sub">シ・ク・フ・オ・ニ・!? の6文字で遊ぶのが基本。カタカナ50音・自由入力も選べます</span>
+  </header>
+
+  <details class="howto">
+    <summary>遊びかた</summary>
+    <ol>
+      <li>文字は最初から<b>人文字</b>（人が体を伸ばして字を作る）。「人文字にする」をOFFにすると普通の文字になります。</li>
+      <li>文字を選ぶと<b>回転・大きさ・左右/上下反転</b>ができます。マウスは<b>右下の丸で大きさ・左上の丸で回転</b>、スマホは<b>2本指でつまむと拡大縮小＆回転</b>（選択中の文字が対象。指はどこでもOK）。</li>
+      <li><b>自由入力</b>なら好きな言葉（例:「しんごうき」）で遊べます。ひらがなはカタカナになります。</li>
+      <li>キーボード: <b>R</b>=90°回転 / <b>H</b>=左右反転 / <b>V</b>=上下反転 / <b>矢印</b>=微調整（<b>Shift</b>で大きく）/ <b>Delete</b>=手札に戻す</li>
+    </ol>
+  </details>
+
+  <!-- ① ガチャ -->
+  <section>
+    <div class="sec-head"><h2>① もじガチャ</h2></div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="label">文字セット</span>
+      <label class="field"><input type="radio" name="charset" value="sixfonia" checked> シクフォニ</label>
+      <label class="field"><input type="radio" name="charset" value="kana"> カタカナ50音（オプション）</label>
+      <label class="field"><input type="radio" name="charset" value="free"> 自由入力（オプション）</label>
+    </div>
+    <div class="row" id="free-row" style="display:none; margin-bottom:8px">
+      <label class="field">
+        使う文字
+        <input type="text" id="free-chars" maxlength="24" placeholder="例: しんごうき" autocomplete="off">
+      </label>
+      <span class="hint" id="free-info"></span>
+    </div>
+    <div class="row">
+      <label class="field">
+        枚数
+        <input type="range" id="draw-count" min="6" max="24" step="1" value="6">
+        <input type="number" id="draw-count-num" min="6" max="24" step="1" value="6" class="num-sm">
+      </label>
+      <label class="field" id="ensure-all-field">
+        <input type="checkbox" id="ensure-all"> <span id="ensure-all-label">6種すべて最低1枚</span>
+      </label>
+      <button class="primary" id="btn-draw">引く</button>
+      <button class="small" id="btn-undo" disabled>引く前に戻す</button>
+    </div>
+  </section>
+
+  <!-- ② 手札 -->
+  <section>
+    <div class="sec-head"><h2>② 手札</h2><span class="hint">タップでキャンバスへ</span></div>
+    <div id="hand"></div>
+  </section>
+
+  <!-- ③ キャンバス -->
+  <section>
+    <div class="sec-head">
+      <h2>③ ならべる・かさねる・まわす</h2>
+      <span class="hint" id="canvas-hint"></span>
+      <label class="field" style="margin-left:auto">
+        <input type="checkbox" id="opt-hitomoji"> 人文字にする
+      </label>
+    </div>
+    <div id="canvas">
+      <div class="placeholder" id="canvas-placeholder">手札の文字をタップするとここに置かれます</div>
+    </div>
+
+    <div id="tile-controls">
+      <div class="row">
+        <span class="label">回転</span>
+        <input type="range" id="ctl-rot" min="0" max="359" step="1" value="0">
+        <span class="count-badge" id="ctl-rot-label">0°</span>
+        <button class="small" id="ctl-rot-m15">−15°</button>
+        <button class="small" id="ctl-rot-p15">+15°</button>
+        <button class="small" id="ctl-rot-p90">+90°</button>
+      </div>
+      <div class="row">
+        <span class="label">大きさ</span>
+        <input type="range" id="ctl-scale" min="0.5" max="3" step="0.1" value="1">
+        <span class="count-badge" id="ctl-scale-label">1.0×</span>
+        <button class="small" id="ctl-flip">左右反転</button>
+        <button class="small" id="ctl-flip-v">上下反転</button>
+      </div>
+      <div class="row">
+        <span class="label">濃さ</span>
+        <input type="range" id="ctl-opacity" min="0.15" max="1" step="0.05" value="1">
+        <span class="count-badge" id="ctl-opacity-label">100%</span>
+        <span class="hint" style="font-size:11px;color:var(--muted)">薄くすると重ねた下の文字が見えます</span>
+      </div>
+      <div class="row">
+        <span class="label">その他</span>
+        <button class="small" id="ctl-front">前面へ</button>
+        <button class="small" id="ctl-back">背面へ</button>
+        <button class="small" id="ctl-variant">見立て</button>
+        <button class="small" id="ctl-remove">手札に戻す</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <button class="small" id="btn-place-all">すべて置く</button>
+      <button class="small" id="btn-clear">全部もどす</button>
+      <button class="small" id="btn-reset-transform">回転・大きさをリセット</button>
+    </div>
+  </section>
+
+  <!-- ④ サジェスト -->
+  <section>
+    <div class="sec-head">
+      <h2>④ 作れる言葉例</h2>
+      <span class="hint">手札の文字だけでランダムに組んだ並び。押すとキャンバスに並びます</span>
+    </div>
+    <div id="suggest"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="small" id="btn-shuffle-words">別の組み合わせを出す</button>
+    </div>
+  </section>
+
+  <footer>
+    非公式のファン制作物です。シクフォニ及び関係者とは関係ありません。<br>
+    表示された文字の並びに特別な意味はありません。
+  </footer>
+</div>
+
+<script type="module" src="js/main-image.js"></script>
+</body>
+</html>
