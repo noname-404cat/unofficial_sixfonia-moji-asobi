@@ -1,6 +1,9 @@
 // 共有の状態と、localStorage への保存/復元。
 // state と canvas は「同じ実体」を各モジュールで import して共有する。
-import { SETS, ALL_CHARS, STORAGE_KEY, parseFreeChars } from './data.js';
+import { SETS, ALL_CHARS, STORAGE_KEY as BASE_KEY, parseFreeChars } from './data.js';
+
+// 別ページ（画像版など）は <body data-variant="..."> を付けると、保存データを分けられる
+var STORAGE_KEY = BASE_KEY + (document.body.dataset.variant ? '/' + document.body.dataset.variant : '');
 
 export var $ = function (id) { return document.getElementById(id); };
 export var canvas = $('canvas');

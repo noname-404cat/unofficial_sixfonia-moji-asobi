@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 140 140" width="280" height="280">
+  <polyline points="8.4,37.2 91.6,24.4 67.6,50" fill="none" stroke="#198599" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="17.64" y1="35.78" x2="25.53" y2="45.44" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="17.64" y1="35.78" x2="22.26" y2="24.19" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="67.6" y1="50" x2="58.47" y2="53.83" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="67.6" y1="50" x2="64.36" y2="59.36" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <circle cx="-0.6" cy="38.58" r="7.92" fill="#198599"/>
+  <polyline points="26,14.8 26,69.2 26,88.4 78.8,86.8" fill="none" stroke="#198599" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="26" y1="24.15" x2="15.25" y2="30.47" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="26" y1="24.15" x2="36.75" y2="30.47" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="78.8" y1="86.8" x2="87.96" y2="90.56" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="78.8" y1="86.8" x2="87.71" y2="82.49" fill="none" stroke="#198599" stroke-width="5.5" stroke-linecap="round"/>
+  <circle cx="26" cy="5.69" r="7.92" fill="#198599"/>
+</svg>

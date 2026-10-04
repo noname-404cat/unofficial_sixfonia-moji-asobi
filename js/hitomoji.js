@@ -5,6 +5,13 @@ var FRAME = 100 + 2 * MARGIN;                 // 余白つきの描画枠（設�
 var SIZE = Math.round(RES * FRAME / 100);      // 描画キャンバスの一辺(px)
 
 var hitomojiCache = {};   // 表示文字 -> 描画済みキャンバス
+var glyphImages = {};     // 表示文字 -> 完成済みの字の画像（画像版ページだけが登録する）
+
+// 画像が登録された字は、座標から描かずに画像をそのまま使う。画像は描画枠(140×140相当)いっぱいの正方形
+export function registerGlyphImages(map) {
+  glyphImages = map || {};
+  hitomojiCache = {};
+}
 
 // 折れ線に沿って体を伸ばした人をひとり描く
 export function drawStretchedPerson(g, line, u) {
@@ -68,6 +75,12 @@ function hitomojiCanvas(ch) {
   var out = document.createElement('canvas');
   out.width = out.height = SIZE;
   var g = out.getContext('2d');
+
+  if (glyphImages[ch]) {
+    g.drawImage(glyphImages[ch], 0, 0, SIZE, SIZE);
+    hitomojiCache[ch] = out;
+    return out;
+  }
   var u = RES / 100;   // 100×100 の設計座標 → 実解像度
   g.translate(MARGIN * u, MARGIN * u);   // 設計枠の外に余白を取る
 
